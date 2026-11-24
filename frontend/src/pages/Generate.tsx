@@ -1,0 +1,166 @@
+import React, { useState } from 'react';
+import type {
+  GenerationSettings as ISettings,
+  IllustrationCategory,
+  IllustrationCreation,
+  IllustrationStyle,
+} from '../types';
+import { PromptEditor } from '../components/PromptEditor';
+import { CategorySelector } from '../components/CategorySelector';
+import { StyleSelector } from '../components/StyleSelector';
+import { GenerationSettings } from '../components/GenerationSettings';
+import { ImagePreview } from '../components/ImagePreview';
+import { generateIllustration } from '../services/generationService';
+
+interface GenerateProps {
+  initialPrompt?: string;
+  initialCategory?: IllustrationCategory;
+  initialStyle?: IllustrationStyle;
+  initialSettings?: Partial<ISettings>;
+  onSaveCreation: (creation: IllustrationCreation) => void;
+  savedCreationIds: Set<string>;
+}
+
+export const Generate: React.FC<GenerateProps> = ({
+  initialPrompt = '',
+  initialCategory = 'software-architecture',
+  initialStyle = 'flat-vector',
+  initialSettings,
+  onSaveCreation,
+  savedCreationIds,
+}) => {
+  const [prompt, setPrompt] = useState(
+    initialPrompt ||
+      'A modern software architecture diagram showing a React frontend communicating with a FastAPI backend and a MySQL database with Redis caching.'
+  );
+  const [category, setCategory] = useState<IllustrationCategory>(initialCategory);
+  const [style, setStyle] = useState<IllustrationStyle>(initialStyle);
+
+  const [settings, setSettings] = useState<ISettings>({
+    method: initialSettings?.method || 'stable-diffusion-v14',
+    dimensions: initialSettings?.dimensions || '1024x1024',
+    inferenceSteps: initialSettings?.inferenceSteps || 25,
+    guidanceScale: initialSettings?.guidanceScale || 7.5,
+    seed: initialSettings?.seed || 48291,
+    negativePrompt: initialSettings?.negativePrompt || '',
+  });
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [currentCreation, setCurrentCreation] = useState<IllustrationCreation | null>(null);
+
+  const samplePrompts = [
+    'A high-availability Kubernetes cluster architecture with ingress nginx, microservice pods, stateful database sets, and Prometheus observability.',
+    'A Zero-Trust cybersecurity perimeter showing public internet gateway, WAF firewall layer, mTLS mutual authentication, and encrypted KMS HSM enclave.',
+    'A distributed database cluster showing Raft consensus protocol heartbeat between Leader and Follower nodes, Write-Ahead Logs (WAL), and hash ring sharding.',
+    'Multi-region Google Cloud Platform topology with Cloud Armor, Global External HTTPS Load Balancer, VPC peering, and Cloud Spanner synchronous database.',
+    'Deep learning Stable Diffusion neural pipeline showing text prompt CLIP tokenization, latent Gaussian noise space, UNet cross-attention denoising, and VAE decoder.',
+  ];
+
+  const handleSamplePrompt = () => {
+    const randomPrompt = samplePrompts[Math.floor(Math.random() * samplePrompts.length)];
+    setPrompt(randomPrompt);
+  };
+
+  const handleUpdateSettings = (updated: Partial<ISettings>) => {
+    setSettings((prev) => ({ ...prev, ...updated }));
+  };
+
+  const handleGenerate = async () => {
+    if (!prompt.trim() || isGenerating) return;
+
+    setIsGenerating(true);
+    setProgress(0);
+    setStatusMessage('Initializing diffusion pipeline...');
+
+    try {
+      const creation = await generateIllustration(
+        {
+          prompt,
+          category,
+          style,
+          settings,
+        },
+        (pct, msg) => {
+          setProgress(pct);
+          setStatusMessage(msg);
+        }
+      );
+
+      setCurrentCreation(creation);
+      // Auto-save to gallery
+      onSaveCreation(creation);
+    } catch (err: any) {
+      alert(err.message || 'Generation failed. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRegenerate = () => {
+    const newSeed = Math.floor(Math.random() * 900000) + 100000;
+    setSettings((prev) => ({ ...prev, seed: newSeed }));
+    setTimeout(() => {
+      handleGenerate();
+    }, 50);
+  };
+
+  const isSaved = currentCreation ? savedCreationIds.has(currentCreation.id) : false;
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(420px, 1.1fr) minmax(460px, 1fr)',
+        gap: '24px',
+        alignItems: 'start',
+      }}
+      className="generation-workspace-grid"
+    >
+      {/* Left Panel: Generation Controls */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <PromptEditor
+          prompt={prompt}
+          onChange={setPrompt}
+          onClear={() => setPrompt('')}
+          onSample={handleSamplePrompt}
+          disabled={isGenerating}
+        />
+
+        <CategorySelector
+          selected={category}
+          onSelect={setCategory}
+          disabled={isGenerating}
+        />
+
+        <StyleSelector
+          selected={style}
+          onSelect={setStyle}
+          disabled={isGenerating}
+        />
+
+        <GenerationSettings
+          settings={settings}
+          onChange={handleUpdateSettings}
+          onGenerate={handleGenerate}
+          isGenerating={isGenerating}
+          canGenerate={prompt.trim().length > 0}
+        />
+      </div>
+
+      {/* Right Panel: Image Preview Canvas */}
+      <div>
+        <ImagePreview
+          creation={currentCreation}
+          isGenerating={isGenerating}
+          progress={progress}
+          statusMessage={statusMessage}
+          onRegenerate={handleRegenerate}
+          onSaveToCreations={onSaveCreation}
+          isSaved={isSaved}
+        />
+      </div>
+    </div>
+  );
+};
