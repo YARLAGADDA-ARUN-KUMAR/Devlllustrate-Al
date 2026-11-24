@@ -5,6 +5,7 @@ import type {
   IllustrationStyle,
 } from '../types';
 import { generateTechnicalSvg } from './svgIllustrations';
+import { renderDiagramToSvg } from '../components/diagram/diagramSvgExport';
 
 export interface GenerationRequest {
   prompt: string;
@@ -35,12 +36,86 @@ export async function generateIllustration(
     throw new Error('Please enter a description for the illustration.');
   }
 
-  // If user selected Vector SVG Engine (or legacy SD), run the vector generator
+  // 1. If user selected Vector SVG Engine (or legacy SD), run the offline vector generator
   if (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') {
     return await generateVectorSimulation(request, onProgress);
   }
 
-  // Real AI Generation via FastAPI + Cloudflare Workers AI FLUX.1 Schnell
+  // 2. Structured AI Technical Diagram Generation (LLM-to-Graph pipeline)
+  if (settings.method === 'diagram-ai' || !settings.method) {
+    onProgress?.(20, 'Analyzing architecture components & data flows with LLM...');
+    await new Promise((r) => setTimeout(r, 100));
+
+    onProgress?.(45, 'Synthesizing structured nodes and directional relationships...');
+
+    let response: Response;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 65000);
+
+      response = await fetch(`${API_BASE_URL}/diagrams/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          category: request.category,
+          style: request.style,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        throw new Error(
+          'Diagram understanding request timed out after 60 seconds. Cloudflare Workers AI may be experiencing high load.'
+        );
+      }
+      throw new Error(
+        `Could not connect to FastAPI backend at ${API_BASE_URL}. Please ensure the backend is running on http://127.0.0.1:8000.`
+      );
+    }
+
+    onProgress?.(80, 'Validating graph topology & compiling visual theme...');
+
+    if (!response.ok) {
+      let errorDetail = 'Diagram generation failed.';
+      try {
+        const errJson = await response.json();
+        errorDetail = errJson.detail || errorDetail;
+      } catch {
+        errorDetail = `Server error (${response.status}: ${response.statusText})`;
+      }
+      throw new Error(errorDetail);
+    }
+
+    const resData = await response.json();
+    onProgress?.(100, 'Structured technical diagram generated successfully!');
+
+    const svgMarkup = renderDiagramToSvg(resData.diagram, request.style);
+
+    return {
+      id: resData.id,
+      title: resData.title || (prompt.length > 50 ? `${prompt.slice(0, 47)}...` : prompt),
+      prompt: resData.prompt || prompt,
+      category: request.category,
+      style: request.style,
+      method: 'diagram-ai',
+      dimensions: settings.dimensions,
+      inferenceSteps: settings.inferenceSteps,
+      guidanceScale: settings.guidanceScale,
+      seed: settings.seed,
+      createdAt: resData.createdAt,
+      diagramData: resData.diagram,
+      svgData: svgMarkup,
+      isAIGenerated: true,
+      model: resData.model,
+    };
+  }
+
+  // 3. Real AI Artistic Illustration via Cloudflare Workers AI FLUX.1 Schnell
   onProgress?.(15, 'Validating prompt & technical directives...');
   await new Promise((r) => setTimeout(r, 100));
 

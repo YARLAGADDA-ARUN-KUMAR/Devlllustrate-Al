@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.routes import health, models, generation
+from app.api.routes import health, models, generation, diagrams
 
 app = FastAPI(
     title="DevIllustrate AI Backend",
-    description="FastAPI service for technical documentation illustration generation via Cloudflare Workers AI FLUX.1 Schnell",
+    description="FastAPI service for technical diagram and illustration generation via Cloudflare Workers AI",
     version="1.0.0",
 )
 
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(models.router, prefix="/api")
 app.include_router(generation.router, prefix="/api")
+app.include_router(diagrams.router, prefix="/api")
 
 
 @app.get("/", tags=["Root"])

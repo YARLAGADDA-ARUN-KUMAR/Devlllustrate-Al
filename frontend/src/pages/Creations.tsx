@@ -16,12 +16,14 @@ import {
   downloadAsJpeg,
   downloadSvgFile,
 } from '../services/generationService';
+import { DiagramCanvas } from '../components/diagram/DiagramCanvas';
 
 interface CreationsProps {
   creations: IllustrationCreation[];
   onDeleteCreation: (id: string) => void;
   onClearAll: () => void;
   onNavigateToGenerate: () => void;
+  onEditCreation?: (creation: IllustrationCreation) => void;
 }
 
 export const Creations: React.FC<CreationsProps> = ({
@@ -29,6 +31,7 @@ export const Creations: React.FC<CreationsProps> = ({
   onDeleteCreation,
   onClearAll,
   onNavigateToGenerate,
+  onEditCreation,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -256,9 +259,24 @@ export const Creations: React.FC<CreationsProps> = ({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {activeModalCreation.diagramData && onEditCreation && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => {
+                    const target = activeModalCreation;
+                    setActiveModalCreation(null);
+                    onEditCreation(target);
+                  }}
+                  style={{ fontSize: '13px', padding: '8px 14px' }}
+                >
+                  <Sparkles size={14} /> Open in Workspace
+                </button>
+              )}
+
               <button
                 type="button"
-                className="btn-primary"
+                className="btn-secondary"
                 onClick={() => handleDownloadPng(activeModalCreation)}
                 style={{ fontSize: '13px', padding: '8px 14px' }}
               >
@@ -322,11 +340,19 @@ export const Creations: React.FC<CreationsProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '16px',
+              padding: activeModalCreation.diagramData ? '0' : '16px',
               overflow: 'auto',
             }}
           >
-            {activeModalCreation.imageDataUrl ? (
+            {activeModalCreation.diagramData ? (
+              <div style={{ width: '92vw', height: '72vh', position: 'relative' }}>
+                <DiagramCanvas
+                  diagram={activeModalCreation.diagramData}
+                  style={activeModalCreation.style}
+                  isEditable={true}
+                />
+              </div>
+            ) : activeModalCreation.imageDataUrl ? (
               <img
                 src={activeModalCreation.imageDataUrl}
                 alt={activeModalCreation.title}

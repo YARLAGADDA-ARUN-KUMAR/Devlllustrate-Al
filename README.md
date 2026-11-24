@@ -1,6 +1,6 @@
-# DevIllustrate AI – Technical Documentation Graphic Generator
+# DevIllustrate AI – Technical Diagram & Graphic Generator
 
-> An AI-powered platform for generating high-quality technical documentation graphics, software architecture diagrams, and system visuals using Cloudflare Workers AI and FLUX.1 Schnell.
+> An AI-powered platform for generating accurate, structured, and editable technical documentation diagrams, software architecture schematics, and system visuals. Built with FastAPI, React Flow, and Cloudflare Workers AI.
 
 ---
 
@@ -13,15 +13,17 @@ Follow these step-by-step instructions to get both the Python FastAPI backend an
 #### Prerequisites
 - **Node.js**: v18+ (tested with v22 / v24)
 - **Python**: 3.11+ (tested with Python 3.13)
-- **Cloudflare Account**: with Workers AI enabled (`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`)
+- **Cloudflare Account**: Workers AI enabled (`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`)
 
-#### Step 1: Clone and Set Up Environment Variables
-Create a `backend/.env` file with your Cloudflare Workers AI credentials:
+#### Step 1: Configure Backend Environment Variables
+Create or verify `backend/.env` with your Cloudflare Workers AI credentials:
 ```env
 CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id_here
 CLOUDFLARE_API_TOKEN=your_cloudflare_api_token_here
 CLOUDFLARE_MODEL=@cf/black-forest-labs/flux-1-schnell
+CLOUDFLARE_TEXT_MODEL=@cf/meta/llama-3.1-8b-instruct
 ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+API_TIMEOUT=60
 ```
 *(Reference: see `backend/.env.example`)*
 
@@ -55,38 +57,51 @@ npm install
 # Start the Vite development server
 npm run dev
 ```
-Open your browser to `http://localhost:5173`. The application is ready to generate illustrations.
+Open your browser to `http://localhost:5173`. The application is ready to generate diagrams.
 
 ---
 
 ## 2. How-To Guides (Problem-Oriented)
 
-### How to Generate a Technical Illustration
-1. Navigate to the **Generate** tab in the sidebar navigation.
-2. Enter a description of your graphic (e.g., *"Event-driven microservices architecture communicating via Apache Kafka and Redis cache"*).
-3. Select an **Illustration Category** (e.g., *Software Architecture*, *Cloud Computing*, *Database Systems*).
-4. Select an **Illustration Style** (e.g., *Flat Vector*, *Isometric*, *Blueprint*, *Minimalist*).
-5. Adjust **Generation Settings** if needed (diffusion steps: 1–8, default 4).
-6. Click **Generate Illustration**. The request is sent to the FastAPI backend, which enriches the prompt and calls Cloudflare Workers AI.
-7. Once generated, preview the full-resolution image, download as PNG/SVG, or save to your local library.
+### How to Generate an AI Structured Technical Diagram
+1. Navigate to the **Generate** page in the sidebar.
+2. Verify that **AI Structured Diagram** is selected as the Generation Method (default).
+3. Select an **Illustration Category** (e.g., *Software Architecture*, *Cybersecurity*, *Database Systems*, *Cloud Computing*, *Artificial Intelligence*).
+4. Select a **Visual Style** (e.g., *Flat Vector*, *Isometric*, *Blueprint*, *Minimalist*, *3D Technical*, or *Line Art*).
+5. Enter a prompt describing your system architecture, such as:
+   > *"Zero Trust security architecture with Internet, WAF, API Gateway, Identity Provider, Application Server, and Encrypted Database."*
+6. Click **Generate Illustration**. The LLM infers the graph structure, validates it, and mounts it into the interactive canvas.
+
+### How to Edit Diagrams Interactively
+- **Reposition Components**: Click and drag any node to reposition it. Connected edges adjust automatically.
+- **Edit Node Labels**: Click the edit pencil icon on any node or double-click to rename the component directly.
+- **Add Components**: Click **+ Add Node** in the canvas toolbar to insert a new component.
+- **Create Connections**: Click and drag from any node handle (circle connector) to another node to establish a new directed edge.
+- **Delete Components**: Hover over a node and click the trash icon.
+- **Change Layout Direction**: Click **Direction (LR/TB)** in the canvas toolbar to switch between horizontal (Left-to-Right) and vertical (Top-to-Bottom) flow.
+- **Auto-Align Graph**: Click **Auto Align** to re-execute the Dagre directed graph layout algorithm.
+- **Fullscreen Mode**: Click **Fullscreen** in the toolbar to enter a distraction-free editing canvas.
+
+### How to Export and Reopen Diagrams
+- **Export Formats**: Click **Download PNG** or **Export SVG** to save your diagram for documentation and presentations.
+- **Copy Graph JSON**: Click **Copy JSON** in the toolbar to copy the validated `DiagramDefinition` schema to your clipboard.
+- **Save to Library**: Click **Save to Creations** to store the creation in IndexedDB.
+- **Reopen in Workspace**: Navigate to **My Creations**, open any structured diagram, and click **Open in Workspace** to reload the interactive graph into the Generate canvas with full editability.
 
 ### How to Run Automated Tests
 ```powershell
-# Backend Unit Tests (Pytest)
+# Backend Mock Unit Tests (Pytest)
 cd backend
 .\.venv\Scripts\python.exe -m pytest tests
 
-# Live Cloudflare Integration Verification (requires network)
-.\.venv\Scripts\python.exe -m tests.verify_live_api
+# Live Acceptance Test Suite (All 6 Scenarios)
+.\.venv\Scripts\python.exe tests/verify_acceptance_tests.py
 
 # Frontend Linting & Production Build
 cd ..\frontend
 npm run lint
 npm run build
 ```
-
-### How to Check Backend Health
-Check `GET http://localhost:8000/api/health` directly in your browser, or visit the **Settings** page in the frontend dashboard. The settings page displays the live connection status, backend version, and Cloudflare configuration status.
 
 ---
 
@@ -96,143 +111,110 @@ Check `GET http://localhost:8000/api/health` directly in your browser, or visit 
 
 | Method | Endpoint | Description | Request Body | Response |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/health` | Service health & configuration status | None | `{"status": "healthy", "version": "1.0.0", "cloudflareConfigured": bool}` |
-| `GET` | `/api/models` | List available generation models | None | `{"models": [...], "defaultModel": "..."}` |
-| `POST` | `/api/generate` | Generate illustration using FLUX.1 Schnell | `GenerationRequest` | `GenerationResponse` |
+| `POST` | `/api/diagrams/understand` | LLM text prompt to validated diagram graph | `DiagramUnderstandRequest` | `DiagramDefinition` |
+| `POST` | `/api/diagrams/validate` | Validates and sanitizes diagram graph | `DiagramDefinition` | `DiagramValidationResult` |
+| `POST` | `/api/diagrams/generate` | Generates structured diagram and metadata | `DiagramUnderstandRequest` | `DiagramGenerateResponse` |
+| `POST` | `/api/generate` | Generates artistic raster image via FLUX.1 | `GenerationRequest` | `GenerationResponse` |
+| `GET` | `/api/models` | Lists available AI models | None | `{"models": [...], "defaultModel": "...", "textModel": "..."}` |
+| `GET` | `/api/health` | Service health and Cloudflare status | None | `{"status": "healthy", "cloudflareConfigured": true}` |
 
-#### `POST /api/generate` Schema
+### Structured Diagram JSON Schema (`DiagramDefinition`)
 
-**Request Body:**
 ```json
 {
-  "prompt": "A modern software architecture diagram showing React, FastAPI, and PostgreSQL",
-  "category": "software-architecture",
-  "style": "flat-vector",
-  "aspectRatio": "16:9",
-  "steps": 4,
-  "seed": 42
+  "title": "React Frontend with FastAPI Backend and MySQL Database",
+  "diagram_type": "software_architecture",
+  "description": "Standard three-tier software architecture",
+  "layout_direction": "LR",
+  "nodes": [
+    {
+      "id": "react_frontend",
+      "label": "React Frontend",
+      "type": "frontend",
+      "description": "Client-side SPA",
+      "shape": "rounded",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "fastapi_backend",
+      "label": "FastAPI Backend",
+      "type": "backend",
+      "description": "REST API service",
+      "shape": "rounded",
+      "color": "#10b981"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_react_fastapi_1",
+      "source": "react_frontend",
+      "target": "fastapi_backend",
+      "label": "REST API",
+      "direction": "unidirectional",
+      "style": "solid"
+    }
+  ],
+  "groups": []
 }
 ```
 
-**Response Body:**
-```json
-{
-  "id": "gen_1732450800000",
-  "imageDataUrl": "data:image/jpeg;base64,...",
-  "imageMimeType": "image/jpeg",
-  "prompt": "A modern software architecture diagram...",
-  "enrichedPrompt": "Professional technical documentation illustration of...",
-  "category": "software-architecture",
-  "style": "flat-vector",
-  "model": "@cf/black-forest-labs/flux-1-schnell",
-  "steps": 4,
-  "seed": 42,
-  "createdAt": "2026-11-24T12:00:00.000Z"
-}
-```
+### Visual Style Palettes
 
-### Error Codes and Responses
-
-| HTTP Status | Exception / Reason | User-Facing Message |
-| :--- | :--- | :--- |
-| `400` | Validation error (empty prompt, invalid steps) | Input validation details |
-| `401` / `403` | Invalid or expired Cloudflare API token | *"Cloudflare API authentication failed. Verify credentials in backend/.env"* |
-| `429` | Cloudflare rate limit exceeded | *"Cloudflare rate limit exceeded. Please wait a moment."* |
-| `502` | Network failure reaching Cloudflare Workers AI | *"Failed to communicate with Cloudflare Workers AI"* |
-| `504` | Request timed out after 60s | *"Image generation request timed out. Please retry."* |
+| Style | Aesthetic Direction | Background | Edge Color | Node Colors |
+| :--- | :--- | :--- | :--- | :--- |
+| **Flat Vector** | Modern clean SaaS | Slate navy (`#0f172a`) | Electric blue (`#38bdf8`) | Vibrant accents (Cyan, Emerald, Violet) |
+| **Isometric** | Technical isometric projection | Deep charcoal (`#090d16`) | Cyan accent (`#06b6d4`) | Layered elevation with 3D bevels |
+| **Blueprint** | Engineering blueprint | Technical dark cyan (`#031926`) | Blueprint cyan (`#38bdf8`) | Grid overlay, monospaced typography |
+| **Minimalist** | Monochromatic clarity | Pure slate (`#020617`) | Clean gray (`#94a3b8`) | High contrast, refined wireframes |
+| **3D Technical** | Gradient depth and glassmorphism | Dark violet navy (`#0b0d1b`) | Neon violet (`#8b5cf6`) | Gradient borders, glow effects |
+| **Line Art** | Ultra-fine precision line schematic | Pitch black (`#050505`) | Crisp white (`#ffffff`) | Crisp dashed/solid white stroke geometry |
 
 ---
 
 ## 4. Explanation (Understanding-Oriented)
 
-### Architecture Overview
+### The AI-to-Structured-Diagram-to-Rendering Architecture
 
 ```
-┌─────────────────────────────────┐
-│     React 19 Frontend (Vite)    │
-│  - Generation Workspace UI      │
-│  - IndexedDB Image Storage      │
-│  - SVG & Raster Preview/Export  │
-└────────────────┬────────────────┘
-                 │ HTTP REST (JSON)
-                 ▼
-┌─────────────────────────────────┐
-│       FastAPI Backend           │
-│  - Prompt Enrichment Service    │
-│  - Credential Protection        │
-│  - MIME & Data-URL Formatter    │
-└────────────────┬────────────────┘
-                 │ HTTPS (Bearer Token)
-                 ▼
-┌─────────────────────────────────┐
-│   Cloudflare Workers AI         │
-│  - FLUX.1 Schnell Model         │
-│  - Distilled Rectified Flow     │
-│  - Sub-second / Low-latency     │
-└─────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│               Natural Language User Prompt             │
+│  "Zero Trust architecture with WAF, API Gateway, DB"   │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│            Cloudflare Workers AI (LLM)                 │
+│         @cf/meta/llama-3.1-8b-instruct                 │
+│  - Extracts topology, node types, shapes, and edges    │
+│  - Emits typed JSON conforming to graph grammar        │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│           DiagramValidator (FastAPI Service)           │
+│  - Deduplicates node IDs and cleans identifiers        │
+│  - Eliminates dangling edges without target endpoints  │
+│  - Sanitizes and enforces directed acyclic/cyclic flow │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│         Interactive Vector Engine (@xyflow/react)      │
+│  - Dagre automatic directed layout (LR / TB)           │
+│  - Inline label editing, node drag, edge connection    │
+│  - 6 distinct visual themes (Blueprint, Isometric,...) │
+│  - SVG and PNG vector/raster export                    │
+└────────────────────────────────────────────────────────┘
 ```
 
-### Key Architectural Decisions
+### Why Pure Diffusion Models Fail for Technical Diagrams
+- **Unreliable Text & Labels**: Diffusion models synthesize pixels via latent denoising. They do not comprehend spelling or typography, frequently producing pseudo-alphabetic gibberish.
+- **Hallucinated or Ambiguous Connections**: Arrows in diffusion images often terminate in empty space, lack clear directionality, or form impossible physical topologies.
+- **Zero Editability**: An image generated by a diffusion model is a flattened matrix of pixels. Changing a single label or moving a service requires regenerating the entire image, altering the visual aesthetic and topology unpredictably.
 
-1. **Security & Zero Frontend Secret Exposure**:
-   Cloudflare API credentials (`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`) reside exclusively on the FastAPI backend. No frontend environment variables or client-side bundles ever touch or expose these secrets.
-
-2. **Prompt Enrichment for Technical Graphics**:
-   General diffusion models tend to generate photographic or artistic imagery. `PromptService` automatically analyzes the selected technical category and style, prepending explicit technical design directives (e.g. *clean vector lines, high contrast, clean white background, professional technical schematic layout, no photo noise*).
-
-3. **Distilled FLUX.1 Schnell Performance**:
-   FLUX.1 Schnell uses a 4-step distilled rectified flow architecture, delivering sharp technical diagrams in seconds compared to legacy 25-50 step diffusion models.
-
-4. **IndexedDB Client Storage**:
-   Raw Base64 raster images exceed standard `localStorage` limits (typically 5MB). DevIllustrate AI uses IndexedDB (`devillustrate_db`) with automatic transparent migration from legacy `localStorage`, ensuring thousands of creations can be saved locally without browser storage quotas or crashes.
-
----
-
-## 5. Technology Stack Deep-Dive
-
-### React 19 + TypeScript (Vite)
-- **Component Architecture**: Modular page components (`Dashboard`, `Generate`, `Creations`, `Templates`, `Settings`, `HelpDocs`) communicating via typed React state.
-- **Client Performance**: Sub-second hot-module replacement (HMR) powered by Vite 8 with strict TypeScript typing across all generation interfaces.
-- **Modern Dark UI**: Professional SaaS theme inspired by developer workstations, featuring custom CSS variables, subtle glassmorphism overlays, and Lucide React iconography.
-
-### FastAPI + Uvicorn (Python 3.13)
-- **High-Performance Async I/O**: Non-blocking `async`/`await` request pipeline via HTTPX connecting directly to Cloudflare's serverless edge.
-- **Pydantic Validation**: Strict input validation ensuring prompt lengths (3–1000 chars), valid categories, and normalized step ranges.
-- **CORS Protection**: Scoped origins allowing local Vite client access (`http://localhost:5173`) while rejecting arbitrary external origins.
-
-### Cloudflare Workers AI & FLUX.1 Schnell
-- **Architecture**: 12-billion parameter flow-matching model developed by Black Forest Labs, hosted on Cloudflare's distributed GPU edge infrastructure.
-- **Inference Optimization**: Rectified flow formulation trained to synthesize full-resolution images in 1 to 8 steps (4 steps optimal).
-- **MIME & Byte Pipeline**: Magic byte detection on the backend accurately identifies image headers (`JPEG`, `PNG`, `WEBP`) and formats them into high-resolution browser data URIs.
-
-### IndexedDB Storage Engine (`devillustrate_db`)
-- **Quota Resilience**: Browser `localStorage` is restricted to ~5MB, which fails after saving 10-20 high-resolution base64 images.
-- **Asynchronous Storage**: IndexedDB provides multi-hundred megabyte persistent client storage with zero main-thread freezing.
-- **Transparent Migration**: Automatically detects existing legacy creations in `localStorage`, seeds them into IndexedDB, and maintains backward compatibility.
-
----
-
-## 6. Model Limitations & Parameter Handling
-
-| Parameter | FLUX.1 Schnell Support | How DevIllustrate AI Handles It |
-| :--- | :--- | :--- |
-| **`prompt`** | Supported (Required, max 2048 chars) | Backend prepends domain topology directives and visual style guidelines. |
-| **`steps`** | Supported (1–8, default 4) | Clamped between 1 and 8. The UI slider offers 1 (Fast), 4 (Recommended), and 8 (Max). |
-| **`seed`** | Not Accepted by Cloudflare REST API | Cloudflare returns `400 Bad Request` if `seed` is included in payload. The backend omits it from the Cloudflare payload and maintains it as a client session reference tag. |
-| **`guidance_scale`** | Not Accepted (Built-in Distilled Weights) | Distilled rectified flow models have baked-in guidance. The UI clearly marks this parameter as non-applicable. |
-| **`negative_prompt`** | Not Accepted | FLUX.1 Schnell does not use negative prompting. The backend uses positive technical prompt directives to avoid visual artifacts. |
-| **`dimensions`** | Fixed Tensor Resolution (1024×1024) | Cloudflare outputs standard high-res square images. Dimensions selected in the UI are applied for aspect ratio framing and SVG export scaling. |
-
----
-
-## 7. AI Raster Images vs. Vector SVG Engine
-
-| Feature | Cloudflare AI (FLUX.1 Schnell) | Vector Engine (SVG Blueprint) |
-| :--- | :--- | :--- |
-| **Engine** | 12B Parameter Neural Diffusion Model | Programmatic Deterministic TypeScript/SVG |
-| **Network Required** | Yes (Cloudflare Workers AI REST API) | No (100% Offline in Browser) |
-| **Output Type** | Raster Bitmap (`image/jpeg` or `image/png`) | Pure Vector Markup (`<svg>...</svg>`) |
-| **Zoom Behavior** | High resolution (1024×1024) with zoom | Infinite geometric scaling without pixelation |
-| **Download Formats** | PNG, JPEG | SVG (Vector), PNG, JPEG |
-| **Best For** | Complex creative concepts, 3D technical graphics, isometric illustrations | Precise architectural wireframes, clean system flowcharts |
-
+### How DevIllustrate AI Solves This
+1. **Separation of Understanding and Rendering**: Text comprehension is handled by an LLM trained for structured instruction following (`Llama 3.1 8B Instruct`), while visual layout and rendering are handled deterministically by graph algorithms (`Dagre`) and vector canvas engines (`React Flow`).
+2. **Deterministic Graph Validation**: Before any graph is presented to the user, `DiagramValidator` verifies that every edge connects valid nodes, resolves duplicate identifiers, and formats data into standard Pydantic models.
+3. **True Interactivity**: The user can modify node titles, insert components, re-route edges, change flow directions, and switch visual themes in real time without calling the AI again.
+4. **Hybrid Persistence**: Diagrams are saved in IndexedDB as both structured graph definitions (enabling future re-editing) and self-contained SVG vectors (for fast previews and instant exports).
+5. **Preservation of Alternative Modes**: FLUX.1 Schnell is preserved as "Artistic Illustration" mode for decorative conceptual art, and the local Vector Engine is preserved as "Vector Blueprint" mode for offline generation.

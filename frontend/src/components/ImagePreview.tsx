@@ -12,16 +12,17 @@ import {
   Cpu,
   Cloud,
   X,
-  Sparkles,
   ZoomIn,
   ZoomOut,
+  Boxes,
 } from 'lucide-react';
-import type { IllustrationCreation } from '../types';
+import type { DiagramDefinition, IllustrationCreation } from '../types';
 import {
   downloadAsPng,
   downloadAsJpeg,
   downloadSvgFile,
 } from '../services/generationService';
+import { DiagramCanvas } from './diagram/DiagramCanvas';
 
 interface ImagePreviewProps {
   creation: IllustrationCreation | null;
@@ -30,6 +31,7 @@ interface ImagePreviewProps {
   statusMessage: string;
   onRegenerate: () => void;
   onSaveToCreations?: (creation: IllustrationCreation) => void;
+  onDiagramChange?: (updatedDiagram: DiagramDefinition) => void;
   isSaved?: boolean;
 }
 
@@ -40,6 +42,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   statusMessage,
   onRegenerate,
   onSaveToCreations,
+  onDiagramChange,
   isSaved = false,
 }) => {
   const [isZoomed, setIsZoomed] = useState(false);
@@ -240,10 +243,19 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '16px',
+              padding: creation.diagramData ? '0' : '16px',
             }}
           >
-            {creation.imageDataUrl ? (
+            {creation.diagramData ? (
+              <div style={{ width: '100%', height: '520px', position: 'relative' }}>
+                <DiagramCanvas
+                  diagram={creation.diagramData}
+                  style={creation.style}
+                  onDiagramChange={onDiagramChange}
+                  isEditable={true}
+                />
+              </div>
+            ) : creation.imageDataUrl ? (
               <img
                 src={creation.imageDataUrl}
                 alt={creation.title}
@@ -268,37 +280,39 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               />
             ) : null}
 
-            {/* AI Model Badge */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '12px',
-                right: '12px',
-                backgroundColor: 'rgba(11, 17, 28, 0.88)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid var(--border-medium)',
-                borderRadius: 'var(--radius-full)',
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: creation.isAIGenerated !== false ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              {creation.isAIGenerated !== false ? (
-                <>
-                  <Sparkles size={12} color="var(--accent-cyan)" />
-                  FLUX.1 Schnell AI Output
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={12} color="var(--accent-emerald)" />
-                  Vector Diagram Preview
-                </>
-              )}
-            </div>
+            {/* AI Model Badge (Only when not in interactive diagram canvas, which has its own toolbar) */}
+            {!creation.diagramData && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  backgroundColor: 'rgba(11, 17, 28, 0.88)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '4px 10px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: creation.isAIGenerated !== false ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {creation.imageDataUrl ? (
+                  <>
+                    <Cloud size={12} color="var(--accent-blue)" />
+                    FLUX.1 Schnell Illustration
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={12} color="var(--accent-emerald)" />
+                    Vector Blueprint Preview
+                  </>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           /* Empty State */
@@ -357,19 +371,31 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              {creation.method === 'stable-diffusion-v14' ? (
-                <Cpu size={12} color="var(--accent-violet)" />
+              {creation.method === 'diagram-ai' ? (
+                <>
+                  <Boxes size={12} color="var(--accent-cyan)" />
+                  AI Structured Diagram (Llama 3.1)
+                </>
+              ) : creation.method === 'api' ? (
+                <>
+                  <Cloud size={12} color="var(--accent-blue)" />
+                  Cloudflare Workers AI (FLUX.1)
+                </>
               ) : (
-                <Cloud size={12} color="var(--accent-cyan)" />
+                <>
+                  <Cpu size={12} color="var(--accent-violet)" />
+                  Vector Blueprint Engine
+                </>
               )}
-              {creation.isAIGenerated !== false ? 'Cloudflare Workers AI (FLUX.1)' : 'Vector Engine'}
             </span>
             <span>•</span>
-            <span>{creation.dimensions}</span>
+            <span>
+              {creation.diagramData
+                ? `${creation.diagramData.nodes.length} Nodes · ${creation.diagramData.edges.length} Edges`
+                : creation.dimensions}
+            </span>
             <span>•</span>
-            <span>Steps: {creation.inferenceSteps}</span>
-            <span>•</span>
-            <span>Seed: #{creation.seed}</span>
+            <span>Style: {creation.style}</span>
           </div>
 
           {/* Action Buttons */}
@@ -553,7 +579,16 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               padding: '20px',
             }}
           >
-            {creation.imageDataUrl ? (
+            {creation.diagramData ? (
+              <div style={{ width: '92vw', height: '80vh', position: 'relative' }}>
+                <DiagramCanvas
+                  diagram={creation.diagramData}
+                  style={creation.style}
+                  onDiagramChange={onDiagramChange}
+                  isEditable={true}
+                />
+              </div>
+            ) : creation.imageDataUrl ? (
               <img
                 src={creation.imageDataUrl}
                 alt={creation.title}

@@ -27,6 +27,10 @@ class Settings(BaseSettings):
         default="@cf/black-forest-labs/flux-1-schnell",
         description="Target Cloudflare Workers AI diffusion model",
     )
+    CLOUDFLARE_TEXT_MODEL: str = Field(
+        default="@cf/meta/llama-3.1-8b-instruct",
+        description="Target Cloudflare Workers AI LLM model for structured diagram understanding",
+    )
 
     # CORS & Server
     FRONTEND_ORIGIN: str = Field(default="http://localhost:5173", description="Allowed CORS origin")

@@ -24,7 +24,7 @@ import { HelpDocs } from './pages/HelpDocs';
 const STORAGE_KEY_SETTINGS = 'devillustrate_settings_v1';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  defaultMethod: 'api', // Cloudflare Workers AI by default
+  defaultMethod: 'diagram-ai', // AI Structured Diagram by default
   defaultStyle: 'flat-vector',
   defaultDimensions: '1024x1024',
   defaultSteps: 4,
@@ -37,6 +37,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 function App() {
   const [currentPage, setCurrentPage] = useState<NavigationPage>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeEditCreation, setActiveEditCreation] = useState<IllustrationCreation | null>(null);
 
   // Load creations from IndexedDB (with fallback to INITIAL_CREATIONS)
   const [creations, setCreations] = useState<IllustrationCreation[]>(INITIAL_CREATIONS);
@@ -105,6 +106,7 @@ function App() {
   };
 
   const handleUseTemplate = (template: PromptTemplate) => {
+    setActiveEditCreation(null);
     setActiveTemplatePreset({
       prompt: template.prompt,
       category: template.category,
@@ -116,6 +118,12 @@ function App() {
     setCurrentPage('generate');
   };
 
+  const handleEditCreation = (creation: IllustrationCreation) => {
+    setActiveTemplatePreset(null);
+    setActiveEditCreation(creation);
+    setCurrentPage('generate');
+  };
+
   const savedIds = new Set(creations.map((c) => c.id));
 
   return (
@@ -123,7 +131,12 @@ function App() {
       {/* Sidebar Navigation */}
       <Sidebar
         currentPage={currentPage}
-        onNavigate={setCurrentPage}
+        onNavigate={(p) => {
+          if (p !== 'generate') {
+            setActiveEditCreation(null);
+          }
+          setCurrentPage(p);
+        }}
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
         creationsCount={creations.length}
@@ -133,7 +146,12 @@ function App() {
       <div className="main-wrapper">
         <Header
           currentPage={currentPage}
-          onNavigate={setCurrentPage}
+          onNavigate={(p) => {
+            if (p !== 'generate') {
+              setActiveEditCreation(null);
+            }
+            setCurrentPage(p);
+          }}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
@@ -151,15 +169,39 @@ function App() {
 
           {currentPage === 'generate' && (
             <Generate
-              key={activeTemplatePreset ? activeTemplatePreset.prompt : 'default-gen'}
-              initialPrompt={activeTemplatePreset?.prompt}
-              initialCategory={activeTemplatePreset?.category || 'software-architecture'}
-              initialStyle={activeTemplatePreset?.style || settings.defaultStyle}
+              key={
+                activeEditCreation
+                  ? `edit-${activeEditCreation.id}`
+                  : activeTemplatePreset
+                  ? activeTemplatePreset.prompt
+                  : 'default-gen'
+              }
+              initialCreation={activeEditCreation}
+              initialPrompt={activeEditCreation?.prompt || activeTemplatePreset?.prompt}
+              initialCategory={
+                activeEditCreation?.category ||
+                activeTemplatePreset?.category ||
+                'software-architecture'
+              }
+              initialStyle={
+                activeEditCreation?.style ||
+                activeTemplatePreset?.style ||
+                settings.defaultStyle
+              }
               initialSettings={{
-                method: settings.defaultMethod,
-                dimensions: activeTemplatePreset?.dimensions || settings.defaultDimensions,
-                inferenceSteps: activeTemplatePreset?.steps || settings.defaultSteps,
-                guidanceScale: activeTemplatePreset?.guidance || settings.defaultGuidance,
+                method: activeEditCreation?.method || settings.defaultMethod,
+                dimensions:
+                  activeEditCreation?.dimensions ||
+                  activeTemplatePreset?.dimensions ||
+                  settings.defaultDimensions,
+                inferenceSteps:
+                  activeEditCreation?.inferenceSteps ||
+                  activeTemplatePreset?.steps ||
+                  settings.defaultSteps,
+                guidanceScale:
+                  activeEditCreation?.guidanceScale ||
+                  activeTemplatePreset?.guidance ||
+                  settings.defaultGuidance,
               }}
               onSaveCreation={handleSaveCreation}
               savedCreationIds={savedIds}
@@ -171,7 +213,11 @@ function App() {
               creations={creations}
               onDeleteCreation={handleDeleteCreation}
               onClearAll={handleClearAllCreations}
-              onNavigateToGenerate={() => setCurrentPage('generate')}
+              onNavigateToGenerate={() => {
+                setActiveEditCreation(null);
+                setCurrentPage('generate');
+              }}
+              onEditCreation={handleEditCreation}
             />
           )}
 

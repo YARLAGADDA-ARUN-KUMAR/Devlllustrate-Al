@@ -13,5 +13,6 @@ async def health_check():
         "version": "1.0.0",
         "isCloudflareConfigured": settings.is_configured,
         "defaultModel": settings.CLOUDFLARE_IMAGE_MODEL,
+        "textModel": settings.CLOUDFLARE_TEXT_MODEL,
         "environment": settings.ENVIRONMENT,
     }

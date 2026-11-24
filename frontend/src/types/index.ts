@@ -16,9 +16,69 @@ export type IllustrationStyle =
   | '3d-technical'
   | 'line-art';
 
-export type GenerationMethod = 'api' | 'vector-engine' | 'stable-diffusion-v14';
+export type GenerationMethod = 'diagram-ai' | 'api' | 'vector-engine' | 'stable-diffusion-v14';
 
 export type ImageDimension = '512x512' | '768x768' | '1024x1024';
+
+export type DiagramNodeType =
+  | 'frontend'
+  | 'backend'
+  | 'database'
+  | 'cache'
+  | 'queue'
+  | 'gateway'
+  | 'service'
+  | 'auth'
+  | 'storage'
+  | 'network'
+  | 'firewall'
+  | 'security'
+  | 'ai_model'
+  | 'process'
+  | 'kernel'
+  | 'user'
+  | 'external'
+  | 'generic';
+
+export type DiagramNodeShape =
+  | 'rectangle'
+  | 'cylinder'
+  | 'cloud'
+  | 'diamond'
+  | 'hexagon'
+  | 'circle'
+  | 'rounded';
+
+export interface DiagramNodeData {
+  id: string;
+  label: string;
+  type: DiagramNodeType;
+  description?: string;
+  group?: string;
+  shape?: DiagramNodeShape;
+  color?: string;
+  icon?: string;
+  isEditing?: boolean;
+}
+
+export interface DiagramEdgeData {
+  id?: string;
+  source: string;
+  target: string;
+  label?: string;
+  direction?: 'unidirectional' | 'bidirectional' | 'none';
+  style?: 'solid' | 'dashed' | 'dotted';
+  animated?: boolean;
+}
+
+export interface DiagramDefinition {
+  title: string;
+  diagram_type: string;
+  description?: string;
+  nodes: DiagramNodeData[];
+  edges: DiagramEdgeData[];
+  layout_direction?: 'TB' | 'LR' | 'RL' | 'BT';
+}
 
 export interface GenerationSettings {
   method: GenerationMethod;
@@ -42,9 +102,13 @@ export interface IllustrationCreation {
   seed: number;
   negativePrompt?: string;
   createdAt: string;
-  // Hybrid support: both raster AI-generated images and legacy/vector SVGs
+  // Multi-format support:
+  // 1. Structured Diagram Data (Interactive, editable graph)
+  diagramData?: DiagramDefinition;
+  // 2. Raster AI-generated image (FLUX.1 Schnell)
   imageDataUrl?: string;
   imageMimeType?: string;
+  // 3. Vector SVG representation
   svgData?: string;
   isAIGenerated?: boolean;
   enhancedPrompt?: string;

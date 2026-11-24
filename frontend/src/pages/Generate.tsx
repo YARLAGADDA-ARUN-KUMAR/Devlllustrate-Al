@@ -17,6 +17,7 @@ interface GenerateProps {
   initialCategory?: IllustrationCategory;
   initialStyle?: IllustrationStyle;
   initialSettings?: Partial<ISettings>;
+  initialCreation?: IllustrationCreation | null;
   onSaveCreation: (creation: IllustrationCreation) => void;
   savedCreationIds: Set<string>;
 }
@@ -26,30 +27,32 @@ export const Generate: React.FC<GenerateProps> = ({
   initialCategory = 'software-architecture',
   initialStyle = 'flat-vector',
   initialSettings,
+  initialCreation = null,
   onSaveCreation,
   savedCreationIds,
 }) => {
   const [prompt, setPrompt] = useState(
     initialPrompt ||
+      initialCreation?.prompt ||
       'A modern software architecture diagram showing a React frontend communicating with a FastAPI backend and a MySQL database with Redis caching.'
   );
-  const [category, setCategory] = useState<IllustrationCategory>(initialCategory);
-  const [style, setStyle] = useState<IllustrationStyle>(initialStyle);
+  const [category, setCategory] = useState<IllustrationCategory>(initialCreation?.category || initialCategory);
+  const [style, setStyle] = useState<IllustrationStyle>(initialCreation?.style || initialStyle);
 
   const [settings, setSettings] = useState<ISettings>({
-    method: initialSettings?.method || 'api',
-    dimensions: initialSettings?.dimensions || '1024x1024',
-    inferenceSteps: initialSettings?.inferenceSteps || 4,
-    guidanceScale: initialSettings?.guidanceScale || 7.5,
-    seed: initialSettings?.seed || 48291,
-    negativePrompt: initialSettings?.negativePrompt || '',
+    method: initialCreation?.method || initialSettings?.method || 'diagram-ai',
+    dimensions: initialCreation?.dimensions || initialSettings?.dimensions || '1024x1024',
+    inferenceSteps: initialCreation?.inferenceSteps || initialSettings?.inferenceSteps || 4,
+    guidanceScale: initialCreation?.guidanceScale || initialSettings?.guidanceScale || 7.5,
+    seed: initialCreation?.seed || initialSettings?.seed || 48291,
+    negativePrompt: initialCreation?.negativePrompt || initialSettings?.negativePrompt || '',
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [currentCreation, setCurrentCreation] = useState<IllustrationCreation | null>(null);
+  const [currentCreation, setCurrentCreation] = useState<IllustrationCreation | null>(initialCreation || null);
 
   const samplePrompts = [
     'A high-availability Kubernetes cluster architecture with ingress nginx, microservice pods, stateful database sets, and Prometheus observability.',
@@ -191,7 +194,7 @@ export const Generate: React.FC<GenerateProps> = ({
         />
       </div>
 
-      {/* Right Panel: Image Preview Canvas */}
+      {/* Right Panel: Image / Diagram Preview Canvas */}
       <div>
         <ImagePreview
           creation={currentCreation}
@@ -200,6 +203,9 @@ export const Generate: React.FC<GenerateProps> = ({
           statusMessage={statusMessage}
           onRegenerate={handleRegenerate}
           onSaveToCreations={onSaveCreation}
+          onDiagramChange={(updatedDiagram) => {
+            setCurrentCreation((prev) => (prev ? { ...prev, diagramData: updatedDiagram } : null));
+          }}
           isSaved={isSaved}
         />
       </div>

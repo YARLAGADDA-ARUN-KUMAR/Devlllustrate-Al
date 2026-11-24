@@ -51,94 +51,112 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          {/* Option A: Cloudflare Workers AI FLUX.1 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+          {/* Option 1: AI Technical Diagram (Default & Primary) */}
           <button
             type="button"
-            onClick={() => onChange({ method: 'api' })}
+            onClick={() => onChange({ method: 'diagram-ai' })}
             disabled={isGenerating}
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: settings.method === 'api' ? 'var(--bg-active)' : 'var(--bg-input)',
-              border: settings.method === 'api' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
+              backgroundColor: (settings.method === 'diagram-ai' || !settings.method) ? 'var(--bg-active)' : 'var(--bg-input)',
+              border: (settings.method === 'diagram-ai' || !settings.method) ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
               cursor: isGenerating ? 'not-allowed' : 'pointer',
               textAlign: 'left',
               transition: 'all var(--transition-fast)',
-              boxShadow: settings.method === 'api' ? '0 0 16px rgba(56, 189, 248, 0.2)' : 'none',
+              boxShadow: (settings.method === 'diagram-ai' || !settings.method) ? '0 0 16px rgba(56, 189, 248, 0.25)' : 'none',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: settings.method === 'api' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Cloud size={16} color="var(--accent-cyan)" />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Cloudflare AI
-                </span>
-                <span className="badge badge-cyan" style={{ fontSize: '10px', padding: '1px 5px' }}>
-                  FLUX.1
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Sparkles size={15} color="var(--accent-cyan)" />
+                </div>
+                <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  AI Structured Diagram
                 </span>
               </div>
+              <span className="badge badge-cyan" style={{ fontSize: '10px', padding: '2px 7px' }}>
+                Recommended · LLM Graph
+              </span>
             </div>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              Real generative AI model hosted on Cloudflare Workers AI.
+            <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.4', margin: '0' }}>
+              Generates accurate technical labels, directional arrows, and connected topology rendered on an interactive, editable diagram canvas.
             </p>
           </button>
 
-          {/* Option B: Vector SVG Blueprint Engine */}
-          <button
-            type="button"
-            onClick={() => onChange({ method: 'vector-engine' })}
-            disabled={isGenerating}
-            style={{
-              padding: '14px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? 'var(--bg-active)' : 'var(--bg-input)',
-              border: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? '1px solid var(--accent-violet)' : '1px solid var(--border-subtle)',
-              cursor: isGenerating ? 'not-allowed' : 'pointer',
-              textAlign: 'left',
-              transition: 'all var(--transition-fast)',
-              boxShadow: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? '0 0 16px rgba(129, 140, 248, 0.2)' : 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? 'rgba(129, 140, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Cpu size={16} color="var(--accent-violet)" />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Vector Engine
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {/* Option 2: AI Artistic Illustration (FLUX.1 Schnell) */}
+            <button
+              type="button"
+              onClick={() => onChange({ method: 'api' })}
+              disabled={isGenerating}
+              style={{
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: settings.method === 'api' ? 'var(--bg-active)' : 'var(--bg-input)',
+                border: settings.method === 'api' ? '1px solid var(--accent-blue)' : '1px solid var(--border-subtle)',
+                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                textAlign: 'left',
+                transition: 'all var(--transition-fast)',
+                boxShadow: settings.method === 'api' ? '0 0 14px rgba(96, 165, 250, 0.2)' : 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <Cloud size={15} color="var(--accent-blue)" />
+                <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Artistic Illustration
                 </span>
-                <span className="badge badge-violet" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                <span className="badge badge-blue" style={{ fontSize: '9px', padding: '1px 5px', marginLeft: 'auto' }}>
+                  FLUX.1
+                </span>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35', margin: '0' }}>
+                Decorative conceptual diffusion graphic (raster bitmap image).
+              </p>
+            </button>
+
+            {/* Option 3: Vector SVG Blueprint Engine */}
+            <button
+              type="button"
+              onClick={() => onChange({ method: 'vector-engine' })}
+              disabled={isGenerating}
+              style={{
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? 'var(--bg-active)' : 'var(--bg-input)',
+                border: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? '1px solid var(--accent-violet)' : '1px solid var(--border-subtle)',
+                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                textAlign: 'left',
+                transition: 'all var(--transition-fast)',
+                boxShadow: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? '0 0 14px rgba(129, 140, 248, 0.2)' : 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <Cpu size={15} color="var(--accent-violet)" />
+                <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Vector Blueprint
+                </span>
+                <span className="badge badge-violet" style={{ fontSize: '9px', padding: '1px 5px', marginLeft: 'auto' }}>
                   SVG
                 </span>
               </div>
-            </div>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              Instant programmatic vector blueprint generator (offline).
-            </p>
-          </button>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35', margin: '0' }}>
+                Offline deterministic programmatic SVG schematic generator.
+              </p>
+            </button>
+          </div>
         </div>
       </div>
 
