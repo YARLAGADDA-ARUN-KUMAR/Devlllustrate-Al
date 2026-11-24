@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -18,65 +19,77 @@ logger = logging.getLogger(__name__)
 
 CATEGORY_INSTRUCTIONS: Dict[str, str] = {
     "software-architecture": (
-        "Focus on system components: Frontend, API Gateway, Backend Microservices, "
-        "Databases, Caches, Message Queues, Authentication. Show clear communication protocols on edges."
+        "Focus on system architecture: Frontend clients, API Gateways, Microservices, "
+        "Databases, Caches, Message Queues, Authentication. Show clear communication protocols on edges "
+        "(e.g., 'REST API (HTTPS)', 'gRPC Call', 'SQL Queries (Read/Write)', 'Cache Lookup (Redis)', 'Publish Event')."
     ),
     "cloud-computing": (
-        "Focus on cloud infrastructure: Cloud Regions, Availability Zones, VPC, Public/Private Subnets, "
-        "Load Balancers, Compute Instances, Storage Buckets, NAT Gateways."
+        "Focus on cloud infrastructure: Cloud Regions, Availability Zones (e.g. 'Zone A', 'Zone B'), "
+        "Virtual Private Cloud (VPC), Global Load Balancers, Application Clusters, Shared Managed Databases, "
+        "Object Storage Buckets (S3/GCS), In-Memory Caches. Use 'group' to place components inside distinct zones or tiers."
     ),
     "database-systems": (
-        "Focus on database topology: Primary/Leader nodes, Replica/Follower nodes, Sharding partitions, "
-        "Write-Ahead Logs (WAL), Consensus protocol links (Raft/Paxos), Replication streams."
+        "Focus on database clustering: Primary/Leader nodes, Secondary/Follower replicas, "
+        "Consensus coordination (Raft/Paxos), Write-Ahead Logs (WAL), Read/Write client routing, "
+        "Heartbeat healthchecks, and data replication streams."
     ),
     "cybersecurity": (
-        "Focus on defensive security architecture: Internet, Edge Firewalls, WAF, API Gateway, "
-        "Zero Trust boundaries, Mutual TLS, Authentication Enclave, Encrypted Data Store."
+        "Focus on defensive security architecture: Untrusted Internet, Edge WAF, API Gateway, "
+        "Zero Trust perimeter, Identity Provider (IdP / OAuth2 / OIDC), Application Servers, and Encrypted Database. "
+        "Show explicit data flows: 'TLS Handshake', 'Filtered Requests', 'Token Exchange', 'Authenticated Tunnel'."
     ),
     "artificial-intelligence": (
-        "Focus on ML pipeline stages: Data Ingestion, Preprocessing, Feature Store, "
-        "Neural Network Model, Training/Inference Engine, Evaluation, Prediction Output."
+        "Focus on end-to-end ML / AI pipelines: Raw Data Sources -> Data Preprocessing -> "
+        "Feature Extraction / Feature Store -> Deep Learning / Transformer Model -> Post-processing -> "
+        "Prediction & Evaluation Output. Arrange in sequential execution order."
     ),
     "networking": (
-        "Focus on network topology: Edge Routers, Core Switches, Subnets, Servers, Clients, "
-        "Firewalls, Network links with IP/protocol labels and directional traffic."
+        "Focus on network topology: Edge Routers, Core Switches, DMZ, Firewalls, Application Subnets, "
+        "Database Subnets, Clients. Label links with IP subnets, VLANs, and protocol directions."
     ),
     "operating-systems": (
-        "Focus on OS internals: User Space applications, System Call Interface, Process Scheduler, "
-        "Virtual Memory Manager, Virtual File System (VFS), Kernel Space, Device Drivers, Hardware."
+        "Focus on OS architecture: User Space (Applications, Libraries), System Call Interface (Syscall), "
+        "Kernel Space (Process Scheduler, VFS, Memory Manager, Network Stack), Device Drivers, and Hardware Layer."
     ),
     "general": (
-        "Focus on clean modular components with clear functional hierarchy and directional connections."
+        "Focus on clean modular components with intuitive functional tiers, logical grouping, and directional flow."
     ),
 }
 
-SYSTEM_PROMPT_TEMPLATE = """You are an expert technical system architect and visual diagram engineer.
-Your task is to analyze the user's technical description and generate a complete, accurate, structured graph diagram representation.
+SYSTEM_PROMPT_TEMPLATE = """You are an expert technical system architect and senior visual diagram engineer.
+Your task is to analyze the user's technical description and generate a highly accurate, professional, publication-quality structured graph diagram representation.
 
 Domain Focus: {domain_focus}
 
 You MUST output ONLY a valid JSON object matching this exact schema:
 {{
-  "title": "Clear Diagram Title",
+  "title": "Clear, Professional Diagram Title",
   "diagram_type": "{diagram_type}",
-  "description": "Short summary of the system architecture",
+  "description": "Concise technical overview of this architecture",
   "layout_direction": "LR",
+  "groups": [
+    {{
+      "id": "group_snake_id",
+      "label": "Human Readable Boundary (e.g. Availability Zone 1, VPC, DMZ, Zero Trust Enclave)",
+      "color": "#38bdf8"
+    }}
+  ],
   "nodes": [
     {{
       "id": "unique_snake_case_id",
-      "label": "Display Label",
+      "label": "Exact Component Name",
       "type": "frontend|backend|database|cache|queue|gateway|service|auth|storage|network|firewall|security|ai_model|process|kernel|user|external|generic",
-      "description": "Short explanation of role",
-      "group": "optional_layer_or_boundary_name",
+      "description": "Specific technical role or technology (e.g. 'React 19 SPA', 'FastAPI REST API', 'PostgreSQL v16', 'Redis Cluster')",
+      "group": "optional_group_id_matching_groups_list",
       "shape": "rounded|rectangle|cylinder|cloud|diamond|hexagon|circle"
     }}
   ],
   "edges": [
     {{
-      "id": "e_source_target",
+      "id": "e_source_target_1",
       "source": "exact_source_node_id",
       "target": "exact_target_node_id",
-      "label": "Protocol or action (e.g. REST API, SQL Queries, Raft Heartbeat)",
+      "label": "Accurate protocol or data action (e.g. 'HTTPS Request', 'SQL Query', 'Heartbeat', 'Replication')",
       "direction": "unidirectional|bidirectional|none",
       "style": "solid|dashed|dotted"
     }}
@@ -84,10 +97,21 @@ You MUST output ONLY a valid JSON object matching this exact schema:
 }}
 
 CRITICAL RULES:
-1. Every component mentioned in the user prompt MUST have a distinct node with a clean, readable label.
-2. Every edge MUST reference an exact 'source' and 'target' ID that exists in 'nodes'.
-3. Data flow direction must accurately reflect the technical direction (e.g., Client -> Server, Server -> Database).
-4. Do NOT output any markdown, explanations, or backticks outside the JSON. Output pure raw JSON only.
+1. PRESERVE ALL REQUESTED ENTITIES: Every single component mentioned in the user prompt MUST have a dedicated node with its exact technical name (e.g. React, FastAPI, MySQL, Redis, WAF, Raft Leader). Never invent random extra components or drop requested ones.
+2. ACCURATE NODE TYPES & SHAPES:
+   - Use 'frontend' or 'user' (shape: rounded/circle) for clients/frontends.
+   - Use 'gateway' (shape: diamond/rounded) for API Gateways and Load Balancers.
+   - Use 'backend' or 'service' (shape: rounded/rectangle) for application servers/microservices.
+   - Use 'database' or 'storage' or 'cache' (shape: cylinder) for databases, caches, and object stores.
+   - Use 'security' or 'firewall' or 'auth' (shape: hexagon) for firewalls, WAF, and identity providers.
+   - Use 'ai_model' or 'process' (shape: rounded/hexagon) for neural networks, pipelines, or ML inference.
+3. LOGICAL GROUPS & LAYERS: If the prompt describes zones, tiers, or enclaves (e.g. 'two availability zones', 'public/private subnet', 'Zero Trust boundary'), create matching 'groups' and assign nodes to their respective 'group' id.
+4. MEANINGFUL CONNECTIONS:
+   - Every edge must connect existing 'source' and 'target' IDs.
+   - Use 'solid' for synchronous communication (REST API, SQL, HTTP).
+   - Use 'dashed' for asynchronous flows (events, replication, heartbeats, logs).
+   - Label every edge with a concise, descriptive protocol or action.
+5. STRICT JSON ONLY: Do not output markdown, preambles, or conversational commentary outside the JSON. Return pure valid JSON.
 """
 
 
@@ -182,15 +206,29 @@ class DiagramUnderstandingService:
 
         logger.info("Calling Cloudflare Workers AI LLM model '%s' for diagram understanding", self.model)
 
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, headers=headers, json=payload)
-        except httpx.TimeoutException:
-            logger.error("Cloudflare LLM request timed out after %s seconds", self.timeout)
-            raise CloudflareTimeoutException("Diagram understanding request timed out. Please retry.")
-        except httpx.RequestError as exc:
-            logger.error("Network error communicating with Cloudflare LLM: %s", exc.__class__.__name__)
-            raise CloudflareGenerationException("Failed to connect to Cloudflare Workers AI LLM service.")
+        response = None
+        last_error = None
+        backoffs = [1.5, 3.0, 5.0, 8.0]
+        for attempt in range(len(backoffs)):
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    response = await client.post(url, headers=headers, json=payload)
+                    if response.status_code < 500:
+                        break
+                    logger.warning("Cloudflare server error %d on attempt %d/%d", response.status_code, attempt + 1, len(backoffs))
+                    last_error = CloudflareGenerationException(f"Cloudflare server error ({response.status_code})")
+            except httpx.TimeoutException as exc:
+                logger.error("Cloudflare LLM request timed out after %s seconds (attempt %d/%d)", self.timeout, attempt + 1, len(backoffs))
+                last_error = CloudflareTimeoutException("Diagram understanding request timed out. Please retry.")
+            except httpx.RequestError as exc:
+                logger.warning("Transient network error communicating with Cloudflare LLM (attempt %d/%d): %s", attempt + 1, len(backoffs), exc)
+                last_error = CloudflareGenerationException("Failed to connect to Cloudflare Workers AI LLM service.")
+
+            if attempt < len(backoffs) - 1:
+                await asyncio.sleep(backoffs[attempt])
+
+        if response is None:
+            raise last_error or CloudflareGenerationException("Failed to communicate with Cloudflare Workers AI.")
 
         if response.status_code in (401, 403):
             raise CloudflareAuthException("Cloudflare API authentication failed. Verify credentials in backend/.env")

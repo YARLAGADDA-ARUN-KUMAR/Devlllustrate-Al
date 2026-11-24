@@ -71,12 +71,19 @@ export interface DiagramEdgeData {
   animated?: boolean;
 }
 
+export interface DiagramGroupData {
+  id: string;
+  label: string;
+  color?: string;
+}
+
 export interface DiagramDefinition {
   title: string;
   diagram_type: string;
   description?: string;
   nodes: DiagramNodeData[];
   edges: DiagramEdgeData[];
+  groups?: DiagramGroupData[];
   layout_direction?: 'TB' | 'LR' | 'RL' | 'BT';
 }
 

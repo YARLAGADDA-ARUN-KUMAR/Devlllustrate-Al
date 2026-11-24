@@ -7,13 +7,12 @@ import {
   Zap,
   ArrowRightLeft,
   Globe,
-  Cpu,
   KeyRound,
   HardDrive,
   Network,
   ShieldCheck,
+  ShieldAlert,
   BrainCircuit,
-  Activity,
   Terminal,
   User,
   ExternalLink,
@@ -21,6 +20,9 @@ import {
   Edit2,
   Trash2,
   Check,
+  X,
+  Boxes,
+  Workflow,
 } from 'lucide-react';
 import type { DiagramNodeType, DiagramNodeShape, IllustrationStyle } from '../../types';
 import { THEME_CONFIGS } from './diagramTheme';
@@ -45,18 +47,39 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   cache: Zap,
   queue: ArrowRightLeft,
   gateway: Globe,
-  service: Cpu,
+  service: Boxes,
   auth: KeyRound,
   storage: HardDrive,
   network: Network,
-  firewall: ShieldCheck,
+  firewall: ShieldAlert,
   security: ShieldCheck,
   ai_model: BrainCircuit,
-  process: Activity,
+  process: Workflow,
   kernel: Terminal,
   user: User,
   external: ExternalLink,
   generic: Box,
+};
+
+const TYPE_BADGES: Record<string, string> = {
+  frontend: 'FRONTEND',
+  backend: 'BACKEND API',
+  database: 'DATABASE',
+  cache: 'IN-MEMORY CACHE',
+  queue: 'MESSAGE QUEUE',
+  gateway: 'API GATEWAY',
+  service: 'MICROSERVICE',
+  auth: 'AUTH & IDP',
+  storage: 'OBJECT STORAGE',
+  network: 'NETWORK',
+  firewall: 'WAF / FIREWALL',
+  security: 'SECURITY ENCLAVE',
+  ai_model: 'AI / ML MODEL',
+  process: 'PIPELINE STAGE',
+  kernel: 'OS KERNEL',
+  user: 'CLIENT / USER',
+  external: 'EXTERNAL API',
+  generic: 'COMPONENT',
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -77,14 +100,12 @@ const TYPE_COLORS: Record<string, string> = {
   kernel: '#f59e0b',
   user: '#e2e8f0',
   external: '#94a3b8',
-  generic: '#cbd5e1',
+  generic: '#94a3b8',
 };
 
-export const DiagramNodeComponent: React.FC<{ data: NodeData; targetPosition?: Position; sourcePosition?: Position }> = ({
-  data,
-  targetPosition = Position.Left,
-  sourcePosition = Position.Right,
-}) => {
+export const DiagramNodeComponent: React.FC<{
+  data: NodeData;
+}> = ({ data }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(data.label);
 
@@ -92,6 +113,7 @@ export const DiagramNodeComponent: React.FC<{ data: NodeData; targetPosition?: P
   const theme = THEME_CONFIGS[styleTheme] || THEME_CONFIGS['flat-vector'];
   const IconComponent = TYPE_ICONS[data.type] || Box;
   const accentColor = data.color || TYPE_COLORS[data.type] || theme.accent;
+  const badgeLabel = TYPE_BADGES[data.type] || 'COMPONENT';
 
   const handleSaveLabel = () => {
     if (editLabel.trim() && data.onUpdateLabel) {
@@ -101,230 +123,215 @@ export const DiagramNodeComponent: React.FC<{ data: NodeData; targetPosition?: P
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSaveLabel();
-    } else if (e.key === 'Escape') {
+    if (e.key === 'Enter') handleSaveLabel();
+    if (e.key === 'Escape') {
       setEditLabel(data.label);
       setIsEditing(false);
     }
   };
 
-  // Shape specific border radius or styling
-  const isCylinder = data.shape === 'cylinder';
+  // Cylinder/Database visual effect
+  const isCylinder = data.shape === 'cylinder' || data.type === 'database' || data.type === 'storage';
 
   return (
     <div
+      className="group relative select-none transition-all duration-200"
       style={{
-        width: '240px',
-        minHeight: '92px',
-        padding: '12px 14px',
-        backgroundColor: theme.nodeBg,
+        minWidth: '250px',
+        maxWidth: '320px',
+        padding: '14px 16px',
+        borderRadius: styleTheme === 'line-art' ? '0px' : styleTheme === 'blueprint' ? '4px' : theme.borderRadius,
         background: theme.nodeBg,
         border: theme.nodeBorder,
-        borderRadius: isCylinder ? '20px / 8px' : theme.borderRadius,
         boxShadow: theme.shadow,
         fontFamily: theme.fontFamily,
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        transition: 'all 0.2s ease',
-        cursor: 'grab',
       }}
-      className="diagram-node-card group"
     >
-      {/* Handles for Flow connections */}
+      {/* Top handles */}
       <Handle
         type="target"
-        position={targetPosition}
+        position={Position.Top}
+        id="target-top"
         style={{
-          width: '8px',
-          height: '8px',
-          backgroundColor: accentColor,
-          border: '2px solid #080c14',
-          borderRadius: '50%',
+          width: 8,
+          height: 8,
+          background: theme.handleColor,
+          border: `1.5px solid ${theme.canvasBg}`,
+          borderRadius: styleTheme === 'line-art' ? '0px' : '50%',
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="source-top"
+        style={{
+          width: 8,
+          height: 8,
+          background: theme.handleColor,
+          border: `1.5px solid ${theme.canvasBg}`,
+          borderRadius: styleTheme === 'line-art' ? '0px' : '50%',
         }}
       />
 
-      {/* Top Header Row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              backgroundColor: `${accentColor}22`,
-              border: `1px solid ${accentColor}55`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <IconComponent size={14} color={accentColor} />
-          </div>
+      {/* Left handles */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target-left"
+        style={{
+          width: 8,
+          height: 8,
+          background: theme.handleColor,
+          border: `1.5px solid ${theme.canvasBg}`,
+          borderRadius: styleTheme === 'line-art' ? '0px' : '50%',
+        }}
+      />
 
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              color: accentColor,
-            }}
-          >
-            {data.type.replace('_', ' ')}
-          </span>
+      {/* Right handles */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source-right"
+        style={{
+          width: 8,
+          height: 8,
+          background: theme.handleColor,
+          border: `1.5px solid ${theme.canvasBg}`,
+          borderRadius: styleTheme === 'line-art' ? '0px' : '50%',
+        }}
+      />
+
+      {/* Bottom handles */}
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="target-bottom"
+        style={{
+          width: 8,
+          height: 8,
+          background: theme.handleColor,
+          border: `1.5px solid ${theme.canvasBg}`,
+          borderRadius: styleTheme === 'line-art' ? '0px' : '50%',
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="source-bottom"
+        style={{
+          width: 8,
+          height: 8,
+          background: theme.handleColor,
+          border: `1.5px solid ${theme.canvasBg}`,
+          borderRadius: styleTheme === 'line-art' ? '0px' : '50%',
+        }}
+      />
+
+      {/* Cylinder visual indicator (if database/storage) */}
+      {isCylinder && styleTheme !== 'line-art' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '10%',
+            right: '10%',
+            height: '4px',
+            background: accentColor,
+            opacity: 0.6,
+            borderRadius: '2px',
+          }}
+        />
+      )}
+
+      {/* Node Header: Category Chip + Quick Action Buttons */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider"
+          style={{
+            background: theme.badgeBg,
+            border: `1px solid ${theme.badgeBorder}`,
+            color: styleTheme === 'line-art' ? '#ffffff' : accentColor,
+          }}
+        >
+          <IconComponent className="w-3.5 h-3.5" style={{ color: styleTheme === 'line-art' ? '#ffffff' : accentColor }} />
+          <span>{badgeLabel}</span>
         </div>
 
-        {/* Action icons (Edit / Delete) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {!isEditing ? (
+        {/* Action icons (show on hover) */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {!isEditing && (
             <button
-              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsEditing(true);
               }}
-              title="Edit component label"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-dim)',
-                cursor: 'pointer',
-                padding: '2px',
-                borderRadius: '4px',
-              }}
+              title="Edit label"
+              className="p-1 rounded hover:bg-slate-700/60 text-slate-400 hover:text-white transition-colors"
             >
-              <Edit2 size={12} />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSaveLabel();
-              }}
-              title="Save label"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--accent-emerald)',
-                cursor: 'pointer',
-                padding: '2px',
-              }}
-            >
-              <Check size={13} />
+              <Edit2 className="w-3 h-3" />
             </button>
           )}
-
           {data.onDeleteNode && (
             <button
-              type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                data.onDeleteNode!(data.id);
+                data.onDeleteNode?.(data.id);
               }}
-              title="Delete component"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--accent-rose)',
-                cursor: 'pointer',
-                padding: '2px',
-              }}
+              title="Delete node"
+              className="p-1 rounded hover:bg-red-900/40 text-slate-400 hover:text-red-400 transition-colors"
             >
-              <Trash2 size={12} />
+              <Trash2 className="w-3 h-3" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Main Label */}
-      <div style={{ margin: '4px 0' }}>
-        {isEditing ? (
+      {/* Component Title (Editable) */}
+      {isEditing ? (
+        <div className="flex items-center gap-1 my-1">
           <input
             type="text"
             value={editLabel}
             onChange={(e) => setEditLabel(e.target.value)}
-            onBlur={handleSaveLabel}
             onKeyDown={handleKeyDown}
             autoFocus
-            style={{
-              width: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              border: `1px solid ${accentColor}`,
-              borderRadius: '4px',
-              padding: '2px 6px',
-              fontSize: '13px',
-              fontWeight: 600,
-              color: '#ffffff',
-              outline: 'none',
-            }}
+            className="w-full px-2 py-1 text-xs bg-slate-900 text-white rounded border border-blue-500 focus:outline-none"
           />
-        ) : (
-          <div
-            onDoubleClick={() => setIsEditing(true)}
-            style={{
-              fontSize: '13.5px',
-              fontWeight: 600,
-              color: theme.nodeText,
-              lineHeight: '1.3',
-              wordBreak: 'break-word',
-            }}
-          >
-            {data.label}
-          </div>
-        )}
+          <button onClick={handleSaveLabel} className="p-1 bg-emerald-600 rounded text-white hover:bg-emerald-500">
+            <Check className="w-3 h-3" />
+          </button>
+          <button onClick={() => setIsEditing(false)} className="p-1 bg-slate-700 rounded text-slate-300 hover:bg-slate-600">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      ) : (
+        <h4
+          className="font-bold text-[13.5px] leading-snug tracking-tight break-words"
+          style={{ color: theme.nodeText }}
+        >
+          {data.label}
+        </h4>
+      )}
 
-        {data.description && (
-          <div
-            style={{
-              fontSize: '11px',
-              color: theme.nodeDesc,
-              marginTop: '4px',
-              lineHeight: '1.3',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {data.description}
-          </div>
-        )}
-      </div>
+      {/* Description */}
+      {data.description && (
+        <p
+          className="mt-1 text-[11px] leading-relaxed break-words font-normal"
+          style={{ color: theme.nodeDesc }}
+        >
+          {data.description}
+        </p>
+      )}
 
-      {/* Bottom Group/Layer Badge */}
+      {/* Group or Layer Tag */}
       {data.group && (
-        <div style={{ marginTop: '4px' }}>
-          <span
-            style={{
-              fontSize: '9.5px',
-              padding: '1px 6px',
-              borderRadius: '3px',
-              backgroundColor: theme.badgeBg,
-              color: accentColor,
-              fontWeight: 500,
-              border: `1px solid ${accentColor}33`,
-            }}
-          >
-            {data.group}
+        <div className="mt-2.5 pt-2 border-t border-slate-700/40 flex items-center gap-1.5 text-[9.5px]">
+          <span className="text-slate-500 uppercase tracking-widest font-semibold">Tier:</span>
+          <span className="font-medium text-slate-300 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/60">
+            {data.group.replace(/_/g, ' ')}
           </span>
         </div>
       )}
-
-      {/* Source Connection Handle */}
-      <Handle
-        type="source"
-        position={sourcePosition}
-        style={{
-          width: '8px',
-          height: '8px',
-          backgroundColor: accentColor,
-          border: '2px solid #080c14',
-          borderRadius: '50%',
-        }}
-      />
     </div>
   );
 };

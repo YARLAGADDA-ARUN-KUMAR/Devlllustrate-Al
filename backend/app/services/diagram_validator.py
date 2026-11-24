@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, List, Set, Tuple
-from app.schemas.diagram import DiagramDefinition, DiagramEdge, DiagramNode, DiagramValidationResult
+from app.schemas.diagram import DiagramDefinition, DiagramEdge, DiagramGroup, DiagramNode, DiagramValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +139,38 @@ class DiagramValidator:
             except Exception as e:
                 warnings.append(f"Failed to parse edge {edge_id}: {e}")
 
-        # 3. Build validated DiagramDefinition
+        # 3. Sanitize Groups (layers, boundaries, availability zones)
+        raw_groups = raw.get("groups", [])
+        sanitized_groups: List[DiagramGroup] = []
+        group_seen: Set[str] = set()
+        for g_item in raw_groups:
+            if isinstance(g_item, dict):
+                gid = str(g_item.get("id", "")).strip().lower().replace(" ", "_")
+                glabel = str(g_item.get("label", "")).strip() or gid
+                if gid and gid not in group_seen:
+                    group_seen.add(gid)
+                    sanitized_groups.append(
+                        DiagramGroup(
+                            id=gid,
+                            label=glabel[:100],
+                            color=g_item.get("color"),
+                        )
+                    )
+
+        # Auto-create groups referenced in nodes if not already defined
+        for node in sanitized_nodes:
+            if node.group:
+                norm_gid = node.group.lower().replace(" ", "_")
+                if norm_gid not in group_seen:
+                    group_seen.add(norm_gid)
+                    sanitized_groups.append(
+                        DiagramGroup(
+                            id=norm_gid,
+                            label=node.group.replace("_", " ").title(),
+                        )
+                    )
+
+        # 4. Build validated DiagramDefinition
         try:
             sanitized_def = DiagramDefinition(
                 title=title[:120],
@@ -147,6 +178,7 @@ class DiagramValidator:
                 description=description[:500],
                 nodes=sanitized_nodes,
                 edges=sanitized_edges,
+                groups=sanitized_groups,
                 layout_direction=layout_direction,
             )
             return DiagramValidationResult(
