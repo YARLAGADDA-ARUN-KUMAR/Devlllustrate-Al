@@ -21,7 +21,7 @@ IllustrationStyle = Literal[
     "line-art",
 ]
 
-GenerationMethod = Literal["api", "stable-diffusion-v14"]
+GenerationMethod = Literal["api", "vector-engine", "stable-diffusion-v14"]
 ImageDimension = Literal["512x512", "768x768", "1024x1024"]
 
 

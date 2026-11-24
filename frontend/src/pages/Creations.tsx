@@ -12,8 +12,8 @@ import {
 import type { IllustrationCreation } from '../types';
 import { CreationCard } from '../components/CreationCard';
 import {
-  downloadImageFile,
-  downloadPngFromSvg,
+  downloadAsPng,
+  downloadAsJpeg,
   downloadSvgFile,
 } from '../services/generationService';
 
@@ -56,12 +56,12 @@ export const Creations: React.FC<CreationsProps> = ({
 
   const handleDownloadPng = (creation: IllustrationCreation) => {
     const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const filename = `${cleanTitle || 'technical-illustration'}.png`;
-    if (creation.imageDataUrl) {
-      downloadImageFile(creation.imageDataUrl, filename);
-    } else if (creation.svgData) {
-      downloadPngFromSvg(creation.svgData, filename);
-    }
+    downloadAsPng(creation, cleanTitle || 'technical-illustration');
+  };
+
+  const handleDownloadJpeg = (creation: IllustrationCreation) => {
+    const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    downloadAsJpeg(creation, cleanTitle || 'technical-illustration');
   };
 
   const handleDownloadSvg = (creation: IllustrationCreation) => {
@@ -255,14 +255,23 @@ export const Creations: React.FC<CreationsProps> = ({
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
                 className="btn-primary"
                 onClick={() => handleDownloadPng(activeModalCreation)}
                 style={{ fontSize: '13px', padding: '8px 14px' }}
               >
-                <Download size={14} /> Download PNG
+                <Download size={14} /> PNG
+              </button>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => handleDownloadJpeg(activeModalCreation)}
+                style={{ fontSize: '13px', padding: '8px 14px' }}
+              >
+                <Download size={14} /> JPEG
               </button>
 
               {activeModalCreation.svgData && (
@@ -273,7 +282,7 @@ export const Creations: React.FC<CreationsProps> = ({
                     onClick={() => handleDownloadSvg(activeModalCreation)}
                     style={{ fontSize: '13px', padding: '8px 14px' }}
                   >
-                    Download SVG
+                    SVG
                   </button>
 
                   <button

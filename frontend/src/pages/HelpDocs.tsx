@@ -148,13 +148,16 @@ export const HelpDocs: React.FC = () => {
 
         <ul style={{ paddingLeft: '20px', fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
           <li>
-            <strong>Steps (1–8):</strong> FLUX.1 Schnell uses 4 steps by default. If the frontend sends values greater than 8, the backend automatically maps them to the optimal 4-step range.
+            <strong>Steps (1–8):</strong> FLUX.1 Schnell is designed for 1–8 steps (4 steps is recommended and provides optimal balance between clarity and latency).
           </li>
           <li>
-            <strong>Seed:</strong> Deterministic seeds ensure exact reproducibility when you need identical diagrams across documentation versions.
+            <strong>Seed:</strong> Used as a client-side generation reference tag. Note that Cloudflare Workers AI runs FLUX.1 Schnell cloud-side without fixed user seed inputs.
           </li>
           <li>
-            <strong>Guidance Scale:</strong> FLUX Schnell has built-in CFG guidance in its distilled weights.
+            <strong>Guidance Scale & Negative Prompts:</strong> FLUX.1 Schnell uses distilled rectified flow weights. It does not apply CFG guidance scale or negative prompts; instead, the backend automatically enriches prompts with positive technical styling directives.
+          </li>
+          <li>
+            <strong>Resolution:</strong> Generates at standard 1024×1024 base resolution; dimension settings guide canvas layout and vector scaling.
           </li>
         </ul>
       </section>

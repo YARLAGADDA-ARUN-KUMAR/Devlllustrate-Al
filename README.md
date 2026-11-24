@@ -185,3 +185,54 @@ Check `GET http://localhost:8000/api/health` directly in your browser, or visit 
 
 4. **IndexedDB Client Storage**:
    Raw Base64 raster images exceed standard `localStorage` limits (typically 5MB). DevIllustrate AI uses IndexedDB (`devillustrate_db`) with automatic transparent migration from legacy `localStorage`, ensuring thousands of creations can be saved locally without browser storage quotas or crashes.
+
+---
+
+## 5. Technology Stack Deep-Dive
+
+### React 19 + TypeScript (Vite)
+- **Component Architecture**: Modular page components (`Dashboard`, `Generate`, `Creations`, `Templates`, `Settings`, `HelpDocs`) communicating via typed React state.
+- **Client Performance**: Sub-second hot-module replacement (HMR) powered by Vite 8 with strict TypeScript typing across all generation interfaces.
+- **Modern Dark UI**: Professional SaaS theme inspired by developer workstations, featuring custom CSS variables, subtle glassmorphism overlays, and Lucide React iconography.
+
+### FastAPI + Uvicorn (Python 3.13)
+- **High-Performance Async I/O**: Non-blocking `async`/`await` request pipeline via HTTPX connecting directly to Cloudflare's serverless edge.
+- **Pydantic Validation**: Strict input validation ensuring prompt lengths (3–1000 chars), valid categories, and normalized step ranges.
+- **CORS Protection**: Scoped origins allowing local Vite client access (`http://localhost:5173`) while rejecting arbitrary external origins.
+
+### Cloudflare Workers AI & FLUX.1 Schnell
+- **Architecture**: 12-billion parameter flow-matching model developed by Black Forest Labs, hosted on Cloudflare's distributed GPU edge infrastructure.
+- **Inference Optimization**: Rectified flow formulation trained to synthesize full-resolution images in 1 to 8 steps (4 steps optimal).
+- **MIME & Byte Pipeline**: Magic byte detection on the backend accurately identifies image headers (`JPEG`, `PNG`, `WEBP`) and formats them into high-resolution browser data URIs.
+
+### IndexedDB Storage Engine (`devillustrate_db`)
+- **Quota Resilience**: Browser `localStorage` is restricted to ~5MB, which fails after saving 10-20 high-resolution base64 images.
+- **Asynchronous Storage**: IndexedDB provides multi-hundred megabyte persistent client storage with zero main-thread freezing.
+- **Transparent Migration**: Automatically detects existing legacy creations in `localStorage`, seeds them into IndexedDB, and maintains backward compatibility.
+
+---
+
+## 6. Model Limitations & Parameter Handling
+
+| Parameter | FLUX.1 Schnell Support | How DevIllustrate AI Handles It |
+| :--- | :--- | :--- |
+| **`prompt`** | Supported (Required, max 2048 chars) | Backend prepends domain topology directives and visual style guidelines. |
+| **`steps`** | Supported (1–8, default 4) | Clamped between 1 and 8. The UI slider offers 1 (Fast), 4 (Recommended), and 8 (Max). |
+| **`seed`** | Not Accepted by Cloudflare REST API | Cloudflare returns `400 Bad Request` if `seed` is included in payload. The backend omits it from the Cloudflare payload and maintains it as a client session reference tag. |
+| **`guidance_scale`** | Not Accepted (Built-in Distilled Weights) | Distilled rectified flow models have baked-in guidance. The UI clearly marks this parameter as non-applicable. |
+| **`negative_prompt`** | Not Accepted | FLUX.1 Schnell does not use negative prompting. The backend uses positive technical prompt directives to avoid visual artifacts. |
+| **`dimensions`** | Fixed Tensor Resolution (1024×1024) | Cloudflare outputs standard high-res square images. Dimensions selected in the UI are applied for aspect ratio framing and SVG export scaling. |
+
+---
+
+## 7. AI Raster Images vs. Vector SVG Engine
+
+| Feature | Cloudflare AI (FLUX.1 Schnell) | Vector Engine (SVG Blueprint) |
+| :--- | :--- | :--- |
+| **Engine** | 12B Parameter Neural Diffusion Model | Programmatic Deterministic TypeScript/SVG |
+| **Network Required** | Yes (Cloudflare Workers AI REST API) | No (100% Offline in Browser) |
+| **Output Type** | Raster Bitmap (`image/jpeg` or `image/png`) | Pure Vector Markup (`<svg>...</svg>`) |
+| **Zoom Behavior** | High resolution (1024×1024) with zoom | Infinite geometric scaling without pixelation |
+| **Download Formats** | PNG, JPEG | SVG (Vector), PNG, JPEG |
+| **Best For** | Complex creative concepts, 3D technical graphics, isometric illustrations | Precise architectural wireframes, clean system flowcharts |
+

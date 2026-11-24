@@ -16,7 +16,7 @@ export type IllustrationStyle =
   | '3d-technical'
   | 'line-art';
 
-export type GenerationMethod = 'api' | 'stable-diffusion-v14';
+export type GenerationMethod = 'api' | 'vector-engine' | 'stable-diffusion-v14';
 
 export type ImageDimension = '512x512' | '768x768' | '1024x1024';
 

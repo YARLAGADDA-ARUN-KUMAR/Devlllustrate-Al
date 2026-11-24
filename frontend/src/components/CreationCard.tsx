@@ -7,7 +7,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { IllustrationCreation } from '../types';
-import { downloadImageFile, downloadPngFromSvg, downloadSvgFile } from '../services/generationService';
+import { downloadAsPng, downloadSvgFile } from '../services/generationService';
 
 interface CreationCardProps {
   creation: IllustrationCreation;
@@ -28,12 +28,7 @@ export const CreationCard: React.FC<CreationCardProps> = ({
 
   const handleDownloadPng = () => {
     const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const filename = `${cleanTitle || 'technical-illustration'}.png`;
-    if (creation.imageDataUrl) {
-      downloadImageFile(creation.imageDataUrl, filename);
-    } else if (creation.svgData) {
-      downloadPngFromSvg(creation.svgData, filename);
-    }
+    downloadAsPng(creation, cleanTitle || 'technical-illustration');
   };
 
   const handleDownloadSvg = () => {

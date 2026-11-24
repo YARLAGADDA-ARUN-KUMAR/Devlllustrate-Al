@@ -37,9 +37,9 @@ export const Generate: React.FC<GenerateProps> = ({
   const [style, setStyle] = useState<IllustrationStyle>(initialStyle);
 
   const [settings, setSettings] = useState<ISettings>({
-    method: initialSettings?.method || 'stable-diffusion-v14',
+    method: initialSettings?.method || 'api',
     dimensions: initialSettings?.dimensions || '1024x1024',
-    inferenceSteps: initialSettings?.inferenceSteps || 25,
+    inferenceSteps: initialSettings?.inferenceSteps || 4,
     guidanceScale: initialSettings?.guidanceScale || 7.5,
     seed: initialSettings?.seed || 48291,
     negativePrompt: initialSettings?.negativePrompt || '',
@@ -48,6 +48,7 @@ export const Generate: React.FC<GenerateProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentCreation, setCurrentCreation] = useState<IllustrationCreation | null>(null);
 
   const samplePrompts = [
@@ -72,6 +73,7 @@ export const Generate: React.FC<GenerateProps> = ({
 
     setIsGenerating(true);
     setProgress(0);
+    setErrorMessage(null);
     setStatusMessage('Initializing diffusion pipeline...');
 
     try {
@@ -92,7 +94,7 @@ export const Generate: React.FC<GenerateProps> = ({
       // Auto-save to gallery
       onSaveCreation(creation);
     } catch (err: any) {
-      alert(err.message || 'Generation failed. Please try again.');
+      setErrorMessage(err.message || 'Generation failed. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -120,6 +122,46 @@ export const Generate: React.FC<GenerateProps> = ({
     >
       {/* Left Panel: Generation Controls */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {errorMessage && (
+          <div
+            style={{
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              color: '#fca5a5',
+              fontSize: '13px',
+              lineHeight: 1.5,
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: '12px',
+            }}
+          >
+            <div>
+              <strong style={{ color: '#ef4444', display: 'block', marginBottom: '2px' }}>
+                Generation Failed
+              </strong>
+              {errorMessage}
+            </div>
+            <button
+              type="button"
+              onClick={() => setErrorMessage(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fca5a5',
+                cursor: 'pointer',
+                fontSize: '16px',
+                padding: '0 4px',
+              }}
+              title="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         <PromptEditor
           prompt={prompt}
           onChange={setPrompt}

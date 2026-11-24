@@ -47,12 +47,12 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
             Generation Method
           </h3>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Choose between cloud API inference or our local/Colab Stable Diffusion v1.4 engine.
+            Select Cloudflare Workers AI for real diffusion graphics or the offline Vector Engine for instant SVG blueprints.
           </p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          {/* Option A: API */}
+          {/* Option A: Cloudflare Workers AI FLUX.1 */}
           <button
             type="button"
             onClick={() => onChange({ method: 'api' })}
@@ -82,29 +82,34 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
               >
                 <Cloud size={16} color="var(--accent-cyan)" />
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                API Generation
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Cloudflare AI
+                </span>
+                <span className="badge badge-cyan" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                  FLUX.1
+                </span>
+              </div>
             </div>
             <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              External hosted diffusion model API. Fast cloud execution.
+              Real generative AI model hosted on Cloudflare Workers AI.
             </p>
           </button>
 
-          {/* Option B: Self-Hosted Stable Diffusion v1.4 */}
+          {/* Option B: Vector SVG Blueprint Engine */}
           <button
             type="button"
-            onClick={() => onChange({ method: 'stable-diffusion-v14' })}
+            onClick={() => onChange({ method: 'vector-engine' })}
             disabled={isGenerating}
             style={{
               padding: '14px',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: settings.method === 'stable-diffusion-v14' ? 'var(--bg-active)' : 'var(--bg-input)',
-              border: settings.method === 'stable-diffusion-v14' ? '1px solid var(--accent-violet)' : '1px solid var(--border-subtle)',
+              backgroundColor: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? 'var(--bg-active)' : 'var(--bg-input)',
+              border: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? '1px solid var(--accent-violet)' : '1px solid var(--border-subtle)',
               cursor: isGenerating ? 'not-allowed' : 'pointer',
               textAlign: 'left',
               transition: 'all var(--transition-fast)',
-              boxShadow: settings.method === 'stable-diffusion-v14' ? '0 0 16px rgba(129, 140, 248, 0.2)' : 'none',
+              boxShadow: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? '0 0 16px rgba(129, 140, 248, 0.2)' : 'none',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -113,7 +118,7 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
                   width: '28px',
                   height: '28px',
                   borderRadius: 'var(--radius-sm)',
-                  backgroundColor: settings.method === 'stable-diffusion-v14' ? 'rgba(129, 140, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                  backgroundColor: (settings.method === 'vector-engine' || settings.method === 'stable-diffusion-v14') ? 'rgba(129, 140, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -123,15 +128,15 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  SD v1.4
+                  Vector Engine
                 </span>
-                <span className="badge badge-violet" style={{ fontSize: '10px', padding: '2px 6px' }}>
-                  T4 GPU
+                <span className="badge badge-violet" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                  SVG
                 </span>
               </div>
             </div>
             <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              Self-hosted PyTorch + Hugging Face Diffusers pipeline.
+              Instant programmatic vector blueprint generator (offline).
             </p>
           </button>
         </div>
@@ -140,7 +145,7 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
       {/* 2. Image Dimensions */}
       <div>
         <label className="form-label" style={{ marginBottom: '8px' }}>
-          <span>Image Dimensions</span>
+          <span>Canvas Aspect / Dimensions</span>
           <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
             {settings.dimensions}
           </span>
@@ -171,6 +176,9 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
             );
           })}
         </div>
+        <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '6px' }}>
+          * FLUX.1 Schnell outputs standard 1024×1024 base resolution; dimensions guide the prompt layout and SVG scaling.
+        </p>
       </div>
 
       {/* 3. Inference Sliders (Steps & Guidance Scale) */}
@@ -188,27 +196,27 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
           </div>
           <input
             type="range"
-            min={10}
-            max={50}
+            min={1}
+            max={8}
             step={1}
-            value={settings.inferenceSteps}
+            value={settings.inferenceSteps > 8 ? 4 : settings.inferenceSteps}
             onChange={(e) => onChange({ inferenceSteps: Number(e.target.value) })}
             disabled={isGenerating}
             style={{ accentColor: 'var(--accent-cyan)', width: '100%', cursor: 'pointer' }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-dim)' }}>
-            <span>Fast (10)</span>
-            <span>Balanced (25)</span>
-            <span>Ultra (50)</span>
+            <span>Fast (1)</span>
+            <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>Optimal (4)</span>
+            <span>Max (8)</span>
           </div>
         </div>
 
         {/* Guidance Scale */}
         <div className="form-group">
           <div className="form-label">
-            <span>Guidance Scale (CFG)</span>
-            <span style={{ color: 'var(--accent-violet)', fontFamily: 'var(--font-mono)' }}>
-              {settings.guidanceScale.toFixed(1)}
+            <span>Guidance Scale</span>
+            <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+              N/A (FLUX.1)
             </span>
           </div>
           <input
@@ -218,13 +226,11 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
             step={0.5}
             value={settings.guidanceScale}
             onChange={(e) => onChange({ guidanceScale: Number(e.target.value) })}
-            disabled={isGenerating}
-            style={{ accentColor: 'var(--accent-violet)', width: '100%', cursor: 'pointer' }}
+            disabled={true}
+            style={{ accentColor: 'var(--accent-violet)', width: '100%', opacity: 0.5, cursor: 'not-allowed' }}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-dim)' }}>
-            <span>Creative (1.0)</span>
-            <span>Standard (7.5)</span>
-            <span>Strict (15.0)</span>
+          <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
+            Distilled flow does not apply CFG guidance scale.
           </div>
         </div>
       </div>
@@ -232,8 +238,10 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
       {/* 4. Seed Input */}
       <div className="form-group">
         <div className="form-label">
-          <span>Random Seed</span>
-          <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Deterministic reproducibility</span>
+          <span>Seed / Generation Tag</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+            Client reference tag
+          </span>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <input
@@ -256,6 +264,9 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
             Random
           </button>
         </div>
+        <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
+          Note: FLUX.1 Schnell runs cloud-side without fixed user seed inputs.
+        </p>
       </div>
 
       {/* 5. Negative Prompt (Expandable) */}
@@ -279,10 +290,13 @@ export const GenerationSettings: React.FC<GenerationSettingsProps> = ({
               rows={2}
               value={settings.negativePrompt}
               onChange={(e) => onChange({ negativePrompt: e.target.value })}
-              placeholder="Describe unwanted elements such as blurry objects, distorted shapes, random symbols, low resolution..."
+              placeholder="Unwanted visual elements (note: distilled FLUX.1 models use positive technical directives rather than negative prompts)..."
               disabled={isGenerating}
               style={{ fontSize: '13px' }}
             />
+            <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
+              * Cloudflare FLUX.1 Schnell does not accept negative prompts directly; prompt enrichment automatically injects clean styling directives.
+            </p>
           </div>
         )}
       </div>

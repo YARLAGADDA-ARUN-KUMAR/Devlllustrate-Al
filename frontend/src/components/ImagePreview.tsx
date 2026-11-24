@@ -13,11 +13,13 @@ import {
   Cloud,
   X,
   Sparkles,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import type { IllustrationCreation } from '../types';
 import {
-  downloadImageFile,
-  downloadPngFromSvg,
+  downloadAsPng,
+  downloadAsJpeg,
   downloadSvgFile,
 } from '../services/generationService';
 
@@ -41,18 +43,19 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   isSaved = false,
 }) => {
   const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomScale, setZoomScale] = useState(1);
   const [copied, setCopied] = useState(false);
 
-  const handleDownloadImage = () => {
+  const handleDownloadPng = () => {
     if (!creation) return;
     const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const filename = `${cleanTitle || 'technical-illustration'}.png`;
+    downloadAsPng(creation, cleanTitle || 'technical-illustration');
+  };
 
-    if (creation.imageDataUrl) {
-      downloadImageFile(creation.imageDataUrl, filename);
-    } else if (creation.svgData) {
-      downloadPngFromSvg(creation.svgData, filename);
-    }
+  const handleDownloadJpeg = () => {
+    if (!creation) return;
+    const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    downloadAsJpeg(creation, cleanTitle || 'technical-illustration');
   };
 
   const handleDownloadSvg = () => {
@@ -374,12 +377,23 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             <button
               type="button"
               className="btn-primary"
-              onClick={handleDownloadImage}
-              title="Download high-resolution image"
-              style={{ flex: 1, minWidth: '130px', fontSize: '13px', padding: '10px 14px' }}
+              onClick={handleDownloadPng}
+              title="Download high-resolution image as PNG"
+              style={{ flex: 1, minWidth: '110px', fontSize: '12.5px', padding: '9px 12px' }}
             >
-              <Download size={15} />
-              Download PNG
+              <Download size={14} />
+              PNG
+            </button>
+
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleDownloadJpeg}
+              title="Download high-resolution image as JPEG"
+              style={{ flex: 1, minWidth: '110px', fontSize: '12.5px', padding: '9px 12px' }}
+            >
+              <Download size={14} />
+              JPEG
             </button>
 
             {creation.svgData && (
@@ -388,9 +402,9 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                 className="btn-secondary"
                 onClick={handleDownloadSvg}
                 title="Download raw SVG vector graphic"
-                style={{ fontSize: '13px', padding: '10px 14px' }}
+                style={{ fontSize: '12.5px', padding: '9px 12px' }}
               >
-                Download SVG
+                SVG
               </button>
             )}
 
@@ -399,10 +413,10 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               className="btn-secondary"
               onClick={onRegenerate}
               title="Regenerate with new random seed"
-              style={{ padding: '10px 14px' }}
+              style={{ padding: '9px 12px' }}
             >
-              <RotateCcw size={15} />
-              Regenerate
+              <RotateCcw size={14} />
+              Redo
             </button>
 
             {creation.svgData && (
@@ -411,9 +425,9 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                 className="btn-secondary"
                 onClick={handleCopySvg}
                 title="Copy SVG code to clipboard"
-                style={{ padding: '10px 12px' }}
+                style={{ padding: '9px 12px' }}
               >
-                {copied ? <CheckCircle2 size={15} color="var(--accent-emerald)" /> : <FileCode size={15} />}
+                {copied ? <CheckCircle2 size={14} color="var(--accent-emerald)" /> : <FileCode size={14} />}
               </button>
             )}
           </div>
@@ -440,6 +454,8 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               marginBottom: '16px',
+              flexWrap: 'wrap',
+              gap: '12px',
             }}
           >
             <div>
@@ -451,19 +467,68 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn-primary" onClick={handleDownloadImage}>
-                <Download size={14} /> Download PNG
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Zoom Controls */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '2px 6px',
+                  marginRight: '8px',
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setZoomScale((z) => Math.max(0.5, z - 0.25))}
+                  title="Zoom Out"
+                  style={{ padding: '4px 6px' }}
+                >
+                  <ZoomOut size={15} />
+                </button>
+                <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', minWidth: '42px', textAlign: 'center' }}>
+                  {Math.round(zoomScale * 100)}%
+                </span>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setZoomScale((z) => Math.min(3, z + 0.25))}
+                  title="Zoom In"
+                  style={{ padding: '4px 6px' }}
+                >
+                  <ZoomIn size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setZoomScale(1)}
+                  style={{ fontSize: '11px', padding: '4px 6px' }}
+                >
+                  Reset
+                </button>
+              </div>
+
+              <button type="button" className="btn-primary" onClick={handleDownloadPng} style={{ fontSize: '12px', padding: '6px 12px' }}>
+                <Download size={13} /> PNG
+              </button>
+              <button type="button" className="btn-secondary" onClick={handleDownloadJpeg} style={{ fontSize: '12px', padding: '6px 12px' }}>
+                <Download size={13} /> JPEG
               </button>
               {creation.svgData && (
-                <button type="button" className="btn-secondary" onClick={handleDownloadSvg}>
-                  Download SVG
+                <button type="button" className="btn-secondary" onClick={handleDownloadSvg} style={{ fontSize: '12px', padding: '6px 12px' }}>
+                  SVG
                 </button>
               )}
               <button
                 type="button"
                 className="btn-ghost"
-                onClick={() => setIsZoomed(false)}
+                onClick={() => {
+                  setIsZoomed(false);
+                  setZoomScale(1);
+                }}
                 style={{
                   backgroundColor: 'rgba(255,255,255,0.1)',
                   color: '#ffffff',
@@ -493,8 +558,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                 src={creation.imageDataUrl}
                 alt={creation.title}
                 style={{
-                  maxWidth: '90vw',
-                  maxHeight: '82vh',
+                  maxWidth: zoomScale === 1 ? '90vw' : 'none',
+                  maxHeight: zoomScale === 1 ? '82vh' : 'none',
+                  transform: `scale(${zoomScale})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 0.15s ease-out',
                   objectFit: 'contain',
                   borderRadius: 'var(--radius-md)',
                   boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
@@ -502,7 +570,14 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               />
             ) : creation.svgData ? (
               <div
-                style={{ maxWidth: '1100px', width: '100%', maxHeight: '85vh' }}
+                style={{
+                  maxWidth: '1100px',
+                  width: '100%',
+                  maxHeight: '85vh',
+                  transform: `scale(${zoomScale})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 0.15s ease-out',
+                }}
                 dangerouslySetInnerHTML={{ __html: creation.svgData }}
               />
             ) : null}
