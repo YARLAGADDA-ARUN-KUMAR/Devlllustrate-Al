@@ -5,6 +5,7 @@ import {
   Sparkles,
   Zap,
   CheckCircle,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const HelpDocs: React.FC = () => {
@@ -39,21 +40,50 @@ export const HelpDocs: React.FC = () => {
           </h2>
         </div>
         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-          Learn best practices for prompting technical documentation illustrations, configuring diffusion inference parameters,
-          and understanding our planned FastAPI and GPU architecture.
+          Learn how DevIllustrate AI integrates Cloudflare Workers AI FLUX.1 Schnell, prompt engineering techniques for software documentation,
+          and how our parameter translation layer operates.
         </p>
       </div>
 
-      {/* 1. Prompt Engineering Guide */}
+      {/* 1. Cloudflare Workers AI FLUX.1 Schnell Architecture */}
+      <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Cpu size={18} color="var(--accent-cyan)" />
+          Cloudflare Workers AI FLUX.1 Schnell Pipeline
+        </h3>
+
+        <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+          DevIllustrate AI connects directly to Cloudflare's serverless AI infrastructure running Black Forest Labs'
+          <strong> FLUX.1 Schnell</strong> model (a 12-billion parameter rectified flow diffusion transformer).
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+          <div style={{ padding: '14px', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-cyan)', marginBottom: '4px' }}>
+              4-Step Distilled Inference
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              FLUX.1 Schnell is distilled specifically for fast 1–8 step execution. 4 steps provide maximum visual fidelity in under 2 seconds.
+            </p>
+          </div>
+
+          <div style={{ padding: '14px', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-violet)', marginBottom: '4px' }}>
+              Automatic Prompt Enhancement
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              The FastAPI backend automatically enriches your prompts with domain keywords (microservices, VPC subnets, Raft consensus) and stylistic guidance.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Prompt Engineering Guidelines */}
       <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Sparkles size={18} color="var(--accent-cyan)" />
           Prompt Engineering for Technical Graphics
         </h3>
-
-        <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-          Unlike creative artwork prompts, technical illustrations require concise architectural semantics:
-        </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div
@@ -89,93 +119,44 @@ export const HelpDocs: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-            Key Structural Keywords to Include:
-          </div>
-          <ul style={{ paddingLeft: '20px', fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-            <li><strong>Nodes:</strong> Clients, API Gateways, Load Balancers, Microservices, Worker Pods, Storage Buckets.</li>
-            <li><strong>Protocols:</strong> HTTPS, REST, gRPC, WebSocket, TCP/UDP, Kafka streaming.</li>
-            <li><strong>Topology:</strong> VPC Subnet, Multi-region peering, DMZ, Ingress / Egress, Shard ring.</li>
-          </ul>
-        </div>
-      </section>
-
-      {/* 2. Diffusion Parameters Explained */}
-      <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Zap size={18} color="var(--accent-violet)" />
-          Inference Parameters Explained
-        </h3>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={{ padding: '12px 14px', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent-cyan)' }}>
-              Inference Steps (10 - 50, Default: 25)
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Controls the number of denoising iterations Euler Ancestral runs over the latent Gaussian tensor.
-              25 steps provide optimal clarity without diminishing returns.
-            </p>
-          </div>
-
-          <div style={{ padding: '12px 14px', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent-violet)' }}>
-              Guidance Scale / CFG (1.0 - 15.0, Default: 7.5)
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Classifier-Free Guidance determines how strictly the UNet adheres to your prompt tokens.
-              A scale between 7.0 and 8.5 produces well-aligned technical diagrams.
-            </p>
-          </div>
-
-          <div style={{ padding: '12px 14px', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent-emerald)' }}>
-              Deterministic Seed
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Setting the same seed with the same prompt reproduces the exact layout and vector topology,
-              essential for maintaining consistent illustration styles across documentation pages.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Future FastAPI & Stable Diffusion v1.4 Roadmap */}
-      <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Cpu size={18} color="var(--accent-cyan)" />
-          Future FastAPI Backend Architecture
-        </h3>
-
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-          The backend service will be implemented using Python FastAPI, exposing a unified <code>/api/generate</code> endpoint.
-          It will dispatch inference tasks to either:
-        </p>
-
-        <ul style={{ paddingLeft: '20px', fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-          <li>
-            <strong>Hosted Diffusion API:</strong> For low-latency cloud inference without local GPU requirements.
-          </li>
-          <li>
-            <strong>Self-Hosted Stable Diffusion v1.4:</strong> Hugging Face Diffusers + PyTorch deployed on Google Colab
-            (NVIDIA T4 16GB VRAM) or local workstation (NVIDIA RTX 2050 4GB).
-          </li>
-        </ul>
-
         <div
           style={{
-            padding: '12px 16px',
+            padding: '12px 14px',
             borderRadius: 'var(--radius-sm)',
-            backgroundColor: 'var(--bg-input)',
-            border: '1px solid var(--border-subtle)',
-            fontSize: '11.5px',
-            fontFamily: 'var(--font-mono)',
+            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '12px',
             color: 'var(--text-secondary)',
           }}
         >
-          POST /api/generate &#123; prompt, category, style, dimensions, steps, cfg, seed &#125;
+          <ShieldAlert size={18} color="var(--accent-amber)" />
+          <span>
+            <strong>Note on Labels:</strong> While FLUX.1 Schnell possesses superior text rendering capabilities compared to older diffusion models, AI-generated images should be verified before inclusion in mission-critical architecture specifications.
+          </span>
         </div>
+      </section>
+
+      {/* 3. Parameter Mapping Reference */}
+      <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Zap size={18} color="var(--accent-violet)" />
+          Inference Parameter Mapping
+        </h3>
+
+        <ul style={{ paddingLeft: '20px', fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+          <li>
+            <strong>Steps (1–8):</strong> FLUX.1 Schnell uses 4 steps by default. If the frontend sends values greater than 8, the backend automatically maps them to the optimal 4-step range.
+          </li>
+          <li>
+            <strong>Seed:</strong> Deterministic seeds ensure exact reproducibility when you need identical diagrams across documentation versions.
+          </li>
+          <li>
+            <strong>Guidance Scale:</strong> FLUX Schnell has built-in CFG guidance in its distilled weights.
+          </li>
+        </ul>
       </section>
     </div>
   );

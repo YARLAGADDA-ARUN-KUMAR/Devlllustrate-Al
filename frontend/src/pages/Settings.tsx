@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Cpu,
   Trash2,
   Terminal,
   Palette,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import type { AppSettings, IllustrationStyle, ImageDimension } from '../types';
+import { checkBackendHealth } from '../services/generationService';
 
 interface SettingsProps {
   settings: AppSettings;
@@ -20,9 +24,150 @@ export const Settings: React.FC<SettingsProps> = ({
   onClearHistory,
   onResetDefaults,
 }) => {
+  const [backendHealth, setBackendHealth] = useState<{
+    isOnline: boolean;
+    isCloudflareConfigured: boolean;
+    model: string;
+    checked: boolean;
+  }>({
+    isOnline: false,
+    isCloudflareConfigured: false,
+    model: '',
+    checked: false,
+  });
+  const [checking, setChecking] = useState(false);
+
+  const performHealthCheck = async () => {
+    setChecking(true);
+    const result = await checkBackendHealth();
+    setBackendHealth({
+      isOnline: result.isOnline,
+      isCloudflareConfigured: result.isCloudflareConfigured,
+      model: result.model,
+      checked: true,
+    });
+    setChecking(false);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    checkBackendHealth().then((result) => {
+      if (isMounted) {
+        setBackendHealth({
+          isOnline: result.isOnline,
+          isCloudflareConfigured: result.isCloudflareConfigured,
+          model: result.model,
+          checked: true,
+        });
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '860px' }}>
-      {/* 1. Inference Engine Defaults */}
+      {/* 1. Live Backend & Cloudflare Workers AI Status */}
+      <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: backendHealth.isOnline ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Terminal size={18} color={backendHealth.isOnline ? 'var(--accent-emerald)' : 'var(--accent-rose)'} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                FastAPI Backend & Cloudflare AI Status
+              </h3>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                Real-time connection check with your local FastAPI server.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={performHealthCheck}
+            disabled={checking}
+            style={{ fontSize: '12px', padding: '6px 12px' }}
+          >
+            <RefreshCw size={13} className={checking ? 'spin' : ''} />
+            Check Connection
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px',
+            marginTop: '4px',
+          }}
+        >
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--bg-input)',
+              border: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            {backendHealth.isOnline ? (
+              <CheckCircle2 size={18} color="var(--accent-emerald)" />
+            ) : (
+              <AlertCircle size={18} color="var(--accent-rose)" />
+            )}
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600 }}>FastAPI Server</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                {backendHealth.isOnline ? 'Online (http://127.0.0.1:8000)' : 'Not Connected'}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--bg-input)',
+              border: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            {backendHealth.isCloudflareConfigured ? (
+              <CheckCircle2 size={18} color="var(--accent-emerald)" />
+            ) : (
+              <AlertCircle size={18} color="var(--accent-amber)" />
+            )}
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600 }}>Workers AI Credentials</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                {backendHealth.isCloudflareConfigured
+                  ? 'Configured in backend/.env'
+                  : 'Missing credentials in backend/.env'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Inference Engine Defaults */}
       <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
@@ -54,25 +199,6 @@ export const Settings: React.FC<SettingsProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <button
               type="button"
-              onClick={() => onUpdateSettings({ defaultMethod: 'stable-diffusion-v14' })}
-              style={{
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: settings.defaultMethod === 'stable-diffusion-v14' ? 'var(--bg-active)' : 'var(--bg-input)',
-                border: settings.defaultMethod === 'stable-diffusion-v14' ? '1px solid var(--accent-violet)' : '1px solid var(--border-subtle)',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ fontWeight: 600, fontSize: '13.5px' }}>Stable Diffusion v1.4</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                Self-hosted PyTorch inference (Google Colab T4 / Local RTX 2050)
-              </div>
-            </button>
-
-            <button
-              type="button"
               onClick={() => onUpdateSettings({ defaultMethod: 'api' })}
               style={{
                 padding: '12px 16px',
@@ -84,9 +210,28 @@ export const Settings: React.FC<SettingsProps> = ({
                 textAlign: 'left',
               }}
             >
-              <div style={{ fontWeight: 600, fontSize: '13.5px' }}>API Cloud Generation</div>
+              <div style={{ fontWeight: 600, fontSize: '13.5px' }}>Cloudflare Workers AI (Recommended)</div>
               <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                External hosted diffusion model provider endpoint
+                FLUX.1 Schnell 4-step distilled diffusion transformer
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onUpdateSettings({ defaultMethod: 'stable-diffusion-v14' })}
+              style={{
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: settings.defaultMethod === 'stable-diffusion-v14' ? 'var(--bg-active)' : 'var(--bg-input)',
+                border: settings.defaultMethod === 'stable-diffusion-v14' ? '1px solid var(--accent-violet)' : '1px solid var(--border-subtle)',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: '13.5px' }}>Self-Hosted / Vector Engine</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
+                Local synthetic vector diagram generator
               </div>
             </button>
           </div>
@@ -127,7 +272,7 @@ export const Settings: React.FC<SettingsProps> = ({
         </div>
       </section>
 
-      {/* 2. Interface & Theme Preference */}
+      {/* 3. Interface & Theme Preference */}
       <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
@@ -184,56 +329,6 @@ export const Settings: React.FC<SettingsProps> = ({
         </div>
       </section>
 
-      {/* 3. Future FastAPI & GPU Integration Status */}
-      <section className="glass-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Terminal size={18} color="var(--accent-emerald)" />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Backend Integration Ready (FastAPI Architecture)
-            </h3>
-            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-              Frontend is architected with modular service endpoints for FastAPI + Stable Diffusion v1.4.
-            </p>
-          </div>
-        </div>
-
-        <div
-          style={{
-            padding: '14px 16px',
-            borderRadius: 'var(--radius-sm)',
-            backgroundColor: 'var(--bg-input)',
-            border: '1px solid var(--border-subtle)',
-            fontSize: '12px',
-            fontFamily: 'var(--font-mono)',
-            color: 'var(--text-secondary)',
-            lineHeight: '1.6',
-          }}
-        >
-          <div>// Target FastAPI Endpoint Configuration</div>
-          <div>VITE_API_BASE_URL=http://localhost:8000/api</div>
-          <div>VITE_COLAB_BACKEND_URL=https://xxxx-t4.ngrok-free.app</div>
-          <div style={{ color: 'var(--accent-emerald)', marginTop: '4px' }}>
-            ✓ Stable Diffusion v1.4 tested on Google Colab T4 GPU
-          </div>
-          <div style={{ color: 'var(--accent-cyan)' }}>
-            ✓ Local NVIDIA RTX 2050 CUDA verification ready
-          </div>
-        </div>
-      </section>
-
       {/* 4. Danger Zone / History Clearing */}
       <section
         className="glass-card"
@@ -250,7 +345,7 @@ export const Settings: React.FC<SettingsProps> = ({
             Storage & History Management
           </h3>
           <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-            Clear client-side localStorage creations cache or reset application defaults.
+            Clear client-side IndexedDB creations cache or reset application defaults.
           </p>
         </div>
 
@@ -259,7 +354,7 @@ export const Settings: React.FC<SettingsProps> = ({
             type="button"
             className="btn-secondary"
             onClick={() => {
-              if (confirm('Clear all stored illustrations from your browser?')) {
+              if (confirm('Clear all stored illustrations from your browser database?')) {
                 onClearHistory();
               }
             }}

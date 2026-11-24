@@ -11,6 +11,7 @@ import type {
 } from './types';
 import { INITIAL_CREATIONS } from './data/sampleCreations';
 import { PROMPT_TEMPLATES } from './data/templates';
+import { StorageService } from './services/storageService';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
@@ -20,14 +21,13 @@ import { Templates } from './pages/Templates';
 import { Settings } from './pages/Settings';
 import { HelpDocs } from './pages/HelpDocs';
 
-const STORAGE_KEY_CREATIONS = 'devillustrate_creations_v1';
 const STORAGE_KEY_SETTINGS = 'devillustrate_settings_v1';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  defaultMethod: 'stable-diffusion-v14',
+  defaultMethod: 'api', // Cloudflare Workers AI by default
   defaultStyle: 'flat-vector',
   defaultDimensions: '1024x1024',
-  defaultSteps: 25,
+  defaultSteps: 4,
   defaultGuidance: 7.5,
   themePreference: 'studio-dark',
   enableSoundEffects: true,
@@ -38,18 +38,8 @@ function App() {
   const [currentPage, setCurrentPage] = useState<NavigationPage>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Load creations from localStorage with fallback to INITIAL_CREATIONS
-  const [creations, setCreations] = useState<IllustrationCreation[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_CREATIONS);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.warn('Failed to parse saved creations from localStorage', e);
-    }
-    return INITIAL_CREATIONS;
-  });
+  // Load creations from IndexedDB (with fallback to INITIAL_CREATIONS)
+  const [creations, setCreations] = useState<IllustrationCreation[]>(INITIAL_CREATIONS);
 
   // Load settings from localStorage
   const [settings, setSettings] = useState<AppSettings>(() => {
@@ -74,14 +64,12 @@ function App() {
     guidance: number;
   } | null>(null);
 
-  // Sync creations to localStorage
+  // Initial load from IndexedDB
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_CREATIONS, JSON.stringify(creations));
-    } catch (e) {
-      console.error('Failed to save creations to localStorage', e);
-    }
-  }, [creations]);
+    StorageService.getAllCreations(INITIAL_CREATIONS).then((items) => {
+      setCreations(items);
+    });
+  }, []);
 
   // Sync settings to localStorage
   useEffect(() => {
@@ -92,21 +80,23 @@ function App() {
     }
   }, [settings]);
 
-  const handleSaveCreation = (newCreation: IllustrationCreation) => {
+  const handleSaveCreation = async (newCreation: IllustrationCreation) => {
     setCreations((prev) => {
       const exists = prev.some((c) => c.id === newCreation.id);
       if (exists) return prev;
       return [newCreation, ...prev];
     });
+    await StorageService.saveCreation(newCreation);
   };
 
-  const handleDeleteCreation = (id: string) => {
+  const handleDeleteCreation = async (id: string) => {
     setCreations((prev) => prev.filter((c) => c.id !== id));
+    await StorageService.deleteCreation(id);
   };
 
-  const handleClearAllCreations = () => {
+  const handleClearAllCreations = async () => {
     setCreations([]);
-    localStorage.removeItem(STORAGE_KEY_CREATIONS);
+    await StorageService.clearAllCreations();
   };
 
   const handleResetSettings = () => {

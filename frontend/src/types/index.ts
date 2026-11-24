@@ -42,7 +42,13 @@ export interface IllustrationCreation {
   seed: number;
   negativePrompt?: string;
   createdAt: string;
-  svgData: string;
+  // Hybrid support: both raster AI-generated images and legacy/vector SVGs
+  imageDataUrl?: string;
+  imageMimeType?: string;
+  svgData?: string;
+  isAIGenerated?: boolean;
+  enhancedPrompt?: string;
+  model?: string;
   isFavorite?: boolean;
 }
 

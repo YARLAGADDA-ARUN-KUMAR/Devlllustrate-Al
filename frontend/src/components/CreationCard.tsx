@@ -4,9 +4,10 @@ import {
   Trash2,
   Calendar,
   Layers,
+  Sparkles,
 } from 'lucide-react';
 import type { IllustrationCreation } from '../types';
-import { downloadPngFromSvg, downloadSvgFile } from '../services/generationService';
+import { downloadImageFile, downloadPngFromSvg, downloadSvgFile } from '../services/generationService';
 
 interface CreationCardProps {
   creation: IllustrationCreation;
@@ -24,6 +25,22 @@ export const CreationCard: React.FC<CreationCardProps> = ({
     day: 'numeric',
     year: 'numeric',
   });
+
+  const handleDownloadPng = () => {
+    const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const filename = `${cleanTitle || 'technical-illustration'}.png`;
+    if (creation.imageDataUrl) {
+      downloadImageFile(creation.imageDataUrl, filename);
+    } else if (creation.svgData) {
+      downloadPngFromSvg(creation.svgData, filename);
+    }
+  };
+
+  const handleDownloadSvg = () => {
+    if (!creation.svgData) return;
+    const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    downloadSvgFile(creation.svgData, `${cleanTitle}.svg`);
+  };
 
   return (
     <div
@@ -46,15 +63,27 @@ export const CreationCard: React.FC<CreationCardProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '12px',
+          padding: creation.imageDataUrl ? '0' : '12px',
           overflow: 'hidden',
           borderBottom: '1px solid var(--border-subtle)',
         }}
       >
-        <div
-          style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
-          dangerouslySetInnerHTML={{ __html: creation.svgData }}
-        />
+        {creation.imageDataUrl ? (
+          <img
+            src={creation.imageDataUrl}
+            alt={creation.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        ) : creation.svgData ? (
+          <div
+            style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
+            dangerouslySetInnerHTML={{ __html: creation.svgData }}
+          />
+        ) : null}
 
         {/* Hover overlay hint */}
         <div
@@ -62,7 +91,7 @@ export const CreationCard: React.FC<CreationCardProps> = ({
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundColor: 'rgba(9, 13, 22, 0.45)',
+            backgroundColor: 'rgba(9, 13, 22, 0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -76,7 +105,7 @@ export const CreationCard: React.FC<CreationCardProps> = ({
             style={{
               padding: '6px 14px',
               borderRadius: 'var(--radius-full)',
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
               color: 'var(--accent-cyan)',
               fontSize: '12px',
               fontWeight: 600,
@@ -95,7 +124,7 @@ export const CreationCard: React.FC<CreationCardProps> = ({
             position: 'absolute',
             top: '10px',
             left: '10px',
-            backgroundColor: 'rgba(11, 17, 28, 0.85)',
+            backgroundColor: 'rgba(11, 17, 28, 0.88)',
             backdropFilter: 'blur(6px)',
             borderRadius: 'var(--radius-full)',
             padding: '3px 8px',
@@ -103,8 +132,12 @@ export const CreationCard: React.FC<CreationCardProps> = ({
             fontWeight: 500,
             color: 'var(--text-secondary)',
             border: '1px solid var(--border-subtle)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}
         >
+          {creation.isAIGenerated !== false && <Sparkles size={11} color="var(--accent-cyan)" />}
           {creation.category.replace(/-/g, ' ')}
         </div>
       </div>
@@ -170,24 +203,26 @@ export const CreationCard: React.FC<CreationCardProps> = ({
         <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
           <button
             type="button"
-            className="btn-secondary"
-            onClick={() => downloadSvgFile(creation.svgData, `${creation.title}.svg`)}
-            title="Download SVG"
+            className="btn-primary"
+            onClick={handleDownloadPng}
+            title="Download PNG image"
             style={{ flex: 1, fontSize: '12px', padding: '6px 10px' }}
           >
             <Download size={13} />
-            SVG
-          </button>
-
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => downloadPngFromSvg(creation.svgData, `${creation.title}.png`)}
-            title="Download PNG"
-            style={{ flex: 1, fontSize: '12px', padding: '6px 10px' }}
-          >
             PNG
           </button>
+
+          {creation.svgData && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleDownloadSvg}
+              title="Download vector SVG"
+              style={{ flex: 1, fontSize: '12px', padding: '6px 10px' }}
+            >
+              SVG
+            </button>
+          )}
 
           <button
             type="button"

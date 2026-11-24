@@ -11,7 +11,11 @@ import {
 } from 'lucide-react';
 import type { IllustrationCreation } from '../types';
 import { CreationCard } from '../components/CreationCard';
-import { downloadPngFromSvg, downloadSvgFile } from '../services/generationService';
+import {
+  downloadImageFile,
+  downloadPngFromSvg,
+  downloadSvgFile,
+} from '../services/generationService';
 
 interface CreationsProps {
   creations: IllustrationCreation[];
@@ -49,6 +53,22 @@ export const Creations: React.FC<CreationsProps> = ({
       selectedCategory === 'all' || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleDownloadPng = (creation: IllustrationCreation) => {
+    const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const filename = `${cleanTitle || 'technical-illustration'}.png`;
+    if (creation.imageDataUrl) {
+      downloadImageFile(creation.imageDataUrl, filename);
+    } else if (creation.svgData) {
+      downloadPngFromSvg(creation.svgData, filename);
+    }
+  };
+
+  const handleDownloadSvg = (creation: IllustrationCreation) => {
+    if (!creation.svgData) return;
+    const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    downloadSvgFile(creation.svgData, `${cleanTitle}.svg`);
+  };
 
   const handleCopySvg = (svg: string) => {
     navigator.clipboard.writeText(svg);
@@ -239,30 +259,34 @@ export const Creations: React.FC<CreationsProps> = ({
               <button
                 type="button"
                 className="btn-primary"
-                onClick={() => downloadSvgFile(activeModalCreation.svgData, `${activeModalCreation.title}.svg`)}
+                onClick={() => handleDownloadPng(activeModalCreation)}
                 style={{ fontSize: '13px', padding: '8px 14px' }}
               >
-                <Download size={14} /> Download SVG
+                <Download size={14} /> Download PNG
               </button>
 
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => downloadPngFromSvg(activeModalCreation.svgData, `${activeModalCreation.title}.png`)}
-                style={{ fontSize: '13px', padding: '8px 14px' }}
-              >
-                Download PNG
-              </button>
+              {activeModalCreation.svgData && (
+                <>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => handleDownloadSvg(activeModalCreation)}
+                    style={{ fontSize: '13px', padding: '8px 14px' }}
+                  >
+                    Download SVG
+                  </button>
 
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => handleCopySvg(activeModalCreation.svgData)}
-                style={{ fontSize: '13px', padding: '8px 14px' }}
-              >
-                {copied ? <CheckCircle2 size={14} color="var(--accent-emerald)" /> : <FileCode size={14} />}
-                {copied ? 'Copied' : 'Copy SVG'}
-              </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => handleCopySvg(activeModalCreation.svgData!)}
+                    style={{ fontSize: '13px', padding: '8px 14px' }}
+                  >
+                    {copied ? <CheckCircle2 size={14} color="var(--accent-emerald)" /> : <FileCode size={14} />}
+                    {copied ? 'Copied' : 'Copy SVG'}
+                  </button>
+                </>
+              )}
 
               <button
                 type="button"
@@ -293,10 +317,24 @@ export const Creations: React.FC<CreationsProps> = ({
               overflow: 'auto',
             }}
           >
-            <div
-              style={{ maxWidth: '1100px', width: '100%', maxHeight: '80vh' }}
-              dangerouslySetInnerHTML={{ __html: activeModalCreation.svgData }}
-            />
+            {activeModalCreation.imageDataUrl ? (
+              <img
+                src={activeModalCreation.imageDataUrl}
+                alt={activeModalCreation.title}
+                style={{
+                  maxWidth: '90vw',
+                  maxHeight: '75vh',
+                  objectFit: 'contain',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+                }}
+              />
+            ) : activeModalCreation.svgData ? (
+              <div
+                style={{ maxWidth: '1100px', width: '100%', maxHeight: '75vh' }}
+                dangerouslySetInnerHTML={{ __html: activeModalCreation.svgData }}
+              />
+            ) : null}
           </div>
 
           <div

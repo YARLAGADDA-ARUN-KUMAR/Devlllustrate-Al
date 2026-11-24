@@ -12,9 +12,14 @@ import {
   Cpu,
   Cloud,
   X,
+  Sparkles,
 } from 'lucide-react';
 import type { IllustrationCreation } from '../types';
-import { downloadPngFromSvg, downloadSvgFile } from '../services/generationService';
+import {
+  downloadImageFile,
+  downloadPngFromSvg,
+  downloadSvgFile,
+} from '../services/generationService';
 
 interface ImagePreviewProps {
   creation: IllustrationCreation | null;
@@ -38,20 +43,26 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   const [isZoomed, setIsZoomed] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const handleDownloadSvg = () => {
+  const handleDownloadImage = () => {
     if (!creation) return;
-    const filename = `${creation.category}-${creation.style}-${creation.seed}.svg`;
-    downloadSvgFile(creation.svgData, filename);
+    const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const filename = `${cleanTitle || 'technical-illustration'}.png`;
+
+    if (creation.imageDataUrl) {
+      downloadImageFile(creation.imageDataUrl, filename);
+    } else if (creation.svgData) {
+      downloadPngFromSvg(creation.svgData, filename);
+    }
   };
 
-  const handleDownloadPng = () => {
-    if (!creation) return;
-    const filename = `${creation.category}-${creation.style}-${creation.seed}.png`;
-    downloadPngFromSvg(creation.svgData, filename);
+  const handleDownloadSvg = () => {
+    if (!creation || !creation.svgData) return;
+    const cleanTitle = creation.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    downloadSvgFile(creation.svgData, `${cleanTitle}.svg`);
   };
 
   const handleCopySvg = () => {
-    if (!creation) return;
+    if (!creation?.svgData) return;
     navigator.clipboard.writeText(creation.svgData);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -86,7 +97,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {creation
               ? `${creation.category.replace(/-/g, ' ')} · ${creation.style}`
-              : 'Real-time vector rendering output'}
+              : 'Real-time generative model output'}
           </p>
         </div>
 
@@ -174,13 +185,13 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             </div>
 
             <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-              Simulating Latent Diffusion
+              Cloudflare Workers AI
             </h4>
             <p style={{ fontSize: '13px', color: 'var(--accent-cyan)', marginBottom: '20px', minHeight: '38px', fontFamily: 'var(--font-mono)' }}>
-              {statusMessage || 'Sampling Gaussian noise...'}
+              {statusMessage || 'Connecting to FLUX.1 Schnell model...'}
             </p>
 
-            {/* Progress bar */}
+            {/* Indeterminate or staged progress bar */}
             <div
               style={{
                 width: '100%',
@@ -193,11 +204,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             >
               <div
                 style={{
-                  width: `${progress}%`,
+                  width: `${Math.max(10, progress)}%`,
                   height: '100%',
                   background: 'linear-gradient(90deg, #38bdf8 0%, #6366f1 100%)',
                   borderRadius: 'var(--radius-full)',
-                  transition: 'width 0.2s ease-out',
+                  transition: 'width 0.3s ease-out',
                 }}
               />
             </div>
@@ -213,12 +224,12 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                 fontFamily: 'var(--font-mono)',
               }}
             >
-              <span>Latent Denoising</span>
+              <span>FLUX.1 Schnell Inference</span>
               <span>{progress}%</span>
             </div>
           </div>
         ) : creation ? (
-          /* Rendered SVG Illustration */
+          /* Rendered Result: Either Raster AI Image or Vector SVG */
           <div
             style={{
               width: '100%',
@@ -229,38 +240,61 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               padding: '16px',
             }}
           >
-            <div
-              style={{
-                width: '100%',
-                maxHeight: '480px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              dangerouslySetInnerHTML={{ __html: creation.svgData }}
-            />
+            {creation.imageDataUrl ? (
+              <img
+                src={creation.imageDataUrl}
+                alt={creation.title}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '480px',
+                  objectFit: 'contain',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                }}
+              />
+            ) : creation.svgData ? (
+              <div
+                style={{
+                  width: '100%',
+                  maxHeight: '480px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                dangerouslySetInnerHTML={{ __html: creation.svgData }}
+              />
+            ) : null}
 
-            {/* Clearly marked demonstration tag */}
+            {/* AI Model Badge */}
             <div
               style={{
                 position: 'absolute',
                 top: '12px',
                 right: '12px',
-                backgroundColor: 'rgba(11, 17, 28, 0.85)',
+                backgroundColor: 'rgba(11, 17, 28, 0.88)',
                 backdropFilter: 'blur(8px)',
                 border: '1px solid var(--border-medium)',
                 borderRadius: 'var(--radius-full)',
                 padding: '4px 10px',
                 fontSize: '11px',
                 fontWeight: 600,
-                color: 'var(--accent-cyan)',
+                color: creation.isAIGenerated !== false ? 'var(--accent-cyan)' : 'var(--text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
               }}
             >
-              <CheckCircle2 size={12} color="var(--accent-emerald)" />
-              Demo Illustration Output
+              {creation.isAIGenerated !== false ? (
+                <>
+                  <Sparkles size={12} color="var(--accent-cyan)" />
+                  FLUX.1 Schnell AI Output
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={12} color="var(--accent-emerald)" />
+                  Vector Diagram Preview
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -295,7 +329,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               Your illustration will appear here.
             </h4>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              Enter a description and configure settings on the left to generate your first technical illustration.
+              Enter a description and configure settings on the left to generate real AI technical graphics using Cloudflare Workers AI.
             </p>
           </div>
         )}
@@ -325,41 +359,40 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               ) : (
                 <Cloud size={12} color="var(--accent-cyan)" />
               )}
-              {creation.method === 'stable-diffusion-v14' ? 'SD v1.4 (T4 GPU)' : 'API Cloud'}
+              {creation.isAIGenerated !== false ? 'Cloudflare Workers AI (FLUX.1)' : 'Vector Engine'}
             </span>
             <span>•</span>
             <span>{creation.dimensions}</span>
             <span>•</span>
             <span>Steps: {creation.inferenceSteps}</span>
             <span>•</span>
-            <span>CFG: {creation.guidanceScale}</span>
-            <span>•</span>
             <span>Seed: #{creation.seed}</span>
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               type="button"
               className="btn-primary"
-              onClick={handleDownloadSvg}
-              title="Download vector graphic"
-              style={{ fontSize: '13px', padding: '10px 14px' }}
+              onClick={handleDownloadImage}
+              title="Download high-resolution image"
+              style={{ flex: 1, minWidth: '130px', fontSize: '13px', padding: '10px 14px' }}
             >
               <Download size={15} />
-              Download SVG
-            </button>
-
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleDownloadPng}
-              title="Download rasterized PNG"
-              style={{ fontSize: '13px', padding: '10px 14px' }}
-            >
-              <ImageIcon size={15} />
               Download PNG
             </button>
+
+            {creation.svgData && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleDownloadSvg}
+                title="Download raw SVG vector graphic"
+                style={{ fontSize: '13px', padding: '10px 14px' }}
+              >
+                Download SVG
+              </button>
+            )}
 
             <button
               type="button"
@@ -372,15 +405,17 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               Regenerate
             </button>
 
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleCopySvg}
-              title="Copy SVG code to clipboard"
-              style={{ padding: '10px 12px' }}
-            >
-              {copied ? <CheckCircle2 size={15} color="var(--accent-emerald)" /> : <FileCode size={15} />}
-            </button>
+            {creation.svgData && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleCopySvg}
+                title="Copy SVG code to clipboard"
+                style={{ padding: '10px 12px' }}
+              >
+                {copied ? <CheckCircle2 size={15} color="var(--accent-emerald)" /> : <FileCode size={15} />}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -392,7 +427,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             position: 'fixed',
             inset: 0,
             zIndex: 9999,
-            backgroundColor: 'rgba(5, 8, 15, 0.92)',
+            backgroundColor: 'rgba(5, 8, 15, 0.94)',
             backdropFilter: 'blur(12px)',
             display: 'flex',
             flexDirection: 'column',
@@ -417,14 +452,26 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn-secondary" onClick={handleDownloadSvg}>
-                <Download size={14} /> Download SVG
+              <button type="button" className="btn-primary" onClick={handleDownloadImage}>
+                <Download size={14} /> Download PNG
               </button>
+              {creation.svgData && (
+                <button type="button" className="btn-secondary" onClick={handleDownloadSvg}>
+                  Download SVG
+                </button>
+              )}
               <button
                 type="button"
                 className="btn-ghost"
                 onClick={() => setIsZoomed(false)}
-                style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#ffffff', borderRadius: '50%', width: '36px', height: '36px', padding: 0 }}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: '#ffffff',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  padding: 0,
+                }}
               >
                 <X size={18} />
               </button>
@@ -441,10 +488,24 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               padding: '20px',
             }}
           >
-            <div
-              style={{ maxWidth: '1100px', width: '100%', maxHeight: '85vh' }}
-              dangerouslySetInnerHTML={{ __html: creation.svgData }}
-            />
+            {creation.imageDataUrl ? (
+              <img
+                src={creation.imageDataUrl}
+                alt={creation.title}
+                style={{
+                  maxWidth: '90vw',
+                  maxHeight: '82vh',
+                  objectFit: 'contain',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+                }}
+              />
+            ) : creation.svgData ? (
+              <div
+                style={{ maxWidth: '1100px', width: '100%', maxHeight: '85vh' }}
+                dangerouslySetInnerHTML={{ __html: creation.svgData }}
+              />
+            ) : null}
           </div>
         </div>
       )}

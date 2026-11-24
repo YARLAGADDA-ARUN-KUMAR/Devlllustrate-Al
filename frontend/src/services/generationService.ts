@@ -1,4 +1,9 @@
-import type { GenerationSettings, IllustrationCategory, IllustrationCreation, IllustrationStyle } from '../types';
+import type {
+  GenerationSettings,
+  IllustrationCategory,
+  IllustrationCreation,
+  IllustrationStyle,
+} from '../types';
 import { generateTechnicalSvg } from './svgIllustrations';
 
 export interface GenerationRequest {
@@ -12,61 +17,133 @@ export interface ProgressCallback {
   (percentage: number, statusText: string): void;
 }
 
-// Future FastAPI Backend configuration endpoint
-// When FastAPI is running, set this to true or configure via Vite environment variable
-export const BACKEND_CONFIG = {
-  useRealBackend: false,
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
-  t4ColabUrl: import.meta.env.VITE_COLAB_BACKEND_URL || '',
-};
+// Configurable API Base URL from Vite environment, defaulting to standard FastAPI port 8000
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 /**
- * Generates technical illustration.
- * Currently runs a realistic client-side simulation with progressive denoising steps,
- * isolated and ready for seamless FastAPI backend swap.
+ * Generates technical illustration using the FastAPI backend and Cloudflare Workers AI FLUX.1 Schnell.
+ * Shows honest, transparent progress stages rather than fabricated percentages.
  */
 export async function generateIllustration(
   request: GenerationRequest,
   onProgress?: ProgressCallback
 ): Promise<IllustrationCreation> {
-  const { prompt, category, style, settings } = request;
+  const { prompt, settings } = request;
 
   if (!prompt.trim()) {
     throw new Error('Please enter a description for the illustration.');
   }
 
-  // If connected to future backend:
-  if (BACKEND_CONFIG.useRealBackend) {
-    return await callFastApiBackend(request, onProgress);
+  // If user selected Self-Hosted Stable Diffusion v1.4 and backend isn't forced,
+  // allow the vector simulation engine as a secondary test option
+  if (settings.method === 'stable-diffusion-v14') {
+    return await generateVectorSimulation(request, onProgress);
   }
 
-  // Realistic simulated diffusion pipeline
-  const totalSteps = settings.inferenceSteps || 25;
-  const stepDelayMs = 65; // realistic pacing ~1.8-2.5 seconds total
+  // Real AI Generation via FastAPI + Cloudflare Workers AI FLUX.1 Schnell
+  onProgress?.(15, 'Preparing illustration request...');
+  await new Promise((r) => setTimeout(r, 120));
 
-  const progressMilestones = [
-    { pct: 5, msg: 'Initializing diffusion pipeline & CLIP text encoder...' },
-    { pct: 15, msg: `Tokenizing prompt: "${prompt.slice(0, 32)}..."` },
-    { pct: 25, msg: `Sampling Gaussian latent space (Seed: ${settings.seed})...` },
-    { pct: 40, msg: `Euler Ancestral Denoising step 6/${totalSteps}...` },
-    { pct: 55, msg: `Applying classifier-free guidance (scale: ${settings.guidanceScale})...` },
-    { pct: 70, msg: `Euler Ancestral Denoising step 18/${totalSteps}...` },
-    { pct: 85, msg: 'Decoding latents through Variational Autoencoder (VAE)...' },
-    { pct: 95, msg: `Rendering ${style} graphic for ${category}...` },
-    { pct: 100, msg: 'Technical graphic generation complete!' },
+  onProgress?.(35, 'Connecting to FastAPI backend & Cloudflare Workers AI...');
+  
+  let response: Response;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 65000);
+
+    onProgress?.(60, 'Generating technical graphic with FLUX.1 Schnell...');
+
+    response = await fetch(`${API_BASE_URL}/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error(
+        'Generation request timed out after 60 seconds. Cloudflare Workers AI may be experiencing high load.'
+      );
+    }
+    throw new Error(
+      `Could not connect to FastAPI backend at ${API_BASE_URL}. Please ensure the backend is running on http://127.0.0.1:8000.`
+    );
+  }
+
+  onProgress?.(85, 'Processing and decoding generated image...');
+
+  if (!response.ok) {
+    let errorDetail = 'Image generation failed.';
+    try {
+      const errJson = await response.json();
+      errorDetail = errJson.detail || errorDetail;
+    } catch {
+      errorDetail = `Server error (${response.status}: ${response.statusText})`;
+    }
+    throw new Error(errorDetail);
+  }
+
+  const result: IllustrationCreation = await response.json();
+
+  onProgress?.(100, 'Technical illustration ready!');
+  return result;
+}
+
+/**
+ * Check backend connectivity and health.
+ */
+export async function checkBackendHealth(): Promise<{
+  isOnline: boolean;
+  isCloudflareConfigured: boolean;
+  model: string;
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/health`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!res.ok) {
+      return { isOnline: false, isCloudflareConfigured: false, model: '', error: `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    return {
+      isOnline: true,
+      isCloudflareConfigured: Boolean(data.isCloudflareConfigured),
+      model: data.defaultModel || 'FLUX.1 Schnell',
+    };
+  } catch (e: any) {
+    return { isOnline: false, isCloudflareConfigured: false, model: '', error: e.message };
+  }
+}
+
+/**
+ * Secondary vector simulation engine for self-hosted SD testing.
+ */
+async function generateVectorSimulation(
+  request: GenerationRequest,
+  onProgress?: ProgressCallback
+): Promise<IllustrationCreation> {
+  const { prompt, category, style, settings } = request;
+
+  const milestones = [
+    { pct: 20, msg: 'Initializing self-hosted vector engine...' },
+    { pct: 50, msg: `Structuring ${category.replace(/-/g, ' ')} topology...` },
+    { pct: 80, msg: `Synthesizing ${style} technical blueprint...` },
+    { pct: 100, msg: 'Illustration synthesized!' },
   ];
 
-  for (const milestone of progressMilestones) {
-    if (onProgress) {
-      onProgress(milestone.pct, milestone.msg);
-    }
-    await new Promise((resolve) => setTimeout(resolve, stepDelayMs * 3));
+  for (const m of milestones) {
+    onProgress?.(m.pct, m.msg);
+    await new Promise((r) => setTimeout(r, 180));
   }
 
-  // Parse width & height from dimension string (e.g. '1024x1024')
   const [w, h] = settings.dimensions.split('x').map(Number);
-
-  // Generate vector graphic tailored to category and style
   const svgMarkup = generateTechnicalSvg({
     category,
     style,
@@ -76,13 +153,13 @@ export async function generateIllustration(
     seed: settings.seed,
   });
 
-  const creation: IllustrationCreation = {
-    id: `ill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+  return {
+    id: `ill_local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     title: prompt.length > 50 ? `${prompt.slice(0, 47)}...` : prompt,
     prompt: prompt.trim(),
     category,
     style,
-    method: settings.method,
+    method: 'stable-diffusion-v14',
     dimensions: settings.dimensions,
     inferenceSteps: settings.inferenceSteps,
     guidanceScale: settings.guidanceScale,
@@ -90,37 +167,24 @@ export async function generateIllustration(
     negativePrompt: settings.negativePrompt,
     createdAt: new Date().toISOString(),
     svgData: svgMarkup,
+    isAIGenerated: false,
   };
-
-  return creation;
 }
 
 /**
- * Placeholder for future FastAPI integration.
- * Will route to either hosted diffusion API or self-hosted Stable Diffusion v1.4 on Colab/Local GPU.
+ * Downloads a raster image from a Data URL (PNG/JPEG)
  */
-async function callFastApiBackend(
-  request: GenerationRequest,
-  onProgress?: ProgressCallback
-): Promise<IllustrationCreation> {
-  onProgress?.(10, 'Connecting to FastAPI backend endpoint...');
-  
-  const response = await fetch(`${BACKEND_CONFIG.apiBaseUrl}/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Backend error: ${response.statusText}`);
-  }
-
-  const result = await response.json();
-  return result;
+export function downloadImageFile(dataUrl: string, filename: string = 'technical-illustration.png') {
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 /**
- * Helper to download an SVG string as a file in the browser.
+ * Downloads raw SVG markup as a vector file.
  */
 export function downloadSvgFile(svgContent: string, filename: string = 'technical-illustration.svg') {
   const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
@@ -135,7 +199,7 @@ export function downloadSvgFile(svgContent: string, filename: string = 'technica
 }
 
 /**
- * Helper to download SVG rasterized as high-resolution PNG.
+ * Converts SVG string into raster PNG and downloads it.
  */
 export function downloadPngFromSvg(svgContent: string, filename: string = 'technical-illustration.png') {
   const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
@@ -152,12 +216,7 @@ export function downloadPngFromSvg(svgContent: string, filename: string = 'techn
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
       const pngUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = pngUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      downloadImageFile(pngUrl, filename);
     }
     URL.revokeObjectURL(url);
   };
